@@ -84,4 +84,33 @@ export class ProfilesService {
     if (!profile) throw new NotFoundException('Influencer profile not found');
     return profile;
   }
+
+  async updateYoutubeStats(
+      influencerId: string,
+      stats: {
+        youtubeChannelId: string;
+        youtubeSubscribers: number;
+        youtubeAvgViews: number;
+        youtubeMedianViews: number;
+        youtubeER: number;
+        youtubeVideoCount: number;
+        youtubeReachRate: number;
+        youtubeStabilityScore: number;
+      },
+  ): Promise<InfluencerProfile> {
+    const profile = await this.influencerRepo.findOne({ where: { id: influencerId } });
+    if (!profile) throw new NotFoundException('Influencer profile not found');
+
+    Object.assign(profile, {
+      ...stats,
+      youtubeLastSyncAt: new Date(),
+    });
+
+    const saved = await this.influencerRepo.save(profile);
+
+    // Пересчитываем общий скор после обновления статистики
+    this.scoringService.calculateScore(saved.id).catch(() => {});
+
+    return saved;
+  }
 }
