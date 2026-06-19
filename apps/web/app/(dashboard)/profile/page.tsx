@@ -14,32 +14,23 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { InfluencerProfile, BrandProfile } from '../../../types/api';
 
-const nanToUndef = z.preprocess(
-  (v) => (v === '' || v === null || (typeof v === 'number' && isNaN(v as number)) ? undefined : v),
-  z.number().min(0).optional(),
-);
-const nanToUndefMax1 = z.preprocess(
-  (v) => (v === '' || v === null || (typeof v === 'number' && isNaN(v as number)) ? undefined : v),
-  z.number().min(0).max(1).optional(),
-);
-
 const influencerSchema = z.object({
   displayName: z.string().min(1),
   bio: z.string().optional(),
   country: z.string().min(1),
   city: z.string().optional(),
   instagramHandle: z.string().optional(),
-  instagramFollowers: nanToUndef,
-  instagramER: nanToUndefMax1,
-  instagramAvgReach: nanToUndef,
+  instagramFollowers: z.number().min(0).optional(),
+  instagramER: z.number().min(0).max(1).optional(),
+  instagramAvgReach: z.number().min(0).optional(),
   tiktokHandle: z.string().optional(),
-  tiktokFollowers: nanToUndef,
-  tiktokAvgViews: nanToUndef,
+  tiktokFollowers: z.number().min(0).optional(),
+  tiktokAvgViews: z.number().min(0).optional(),
   youtubeHandle: z.string().optional(),
-  youtubeSubscribers: nanToUndef,
-  youtubeAvgViews: nanToUndef,
-  priceFrom: nanToUndef,
-  priceTo: nanToUndef,
+  youtubeSubscribers: z.number().min(0).optional(),
+  youtubeAvgViews: z.number().min(0).optional(),
+  priceFrom: z.number().min(0).optional(),
+  priceTo: z.number().min(0).optional(),
 });
 
 const brandSchema = z.object({
@@ -94,7 +85,13 @@ function InfluencerProfileForm({ profile, token, onSave }: { profile?: Influence
           <Input className={inputClass} {...register('city')} />
         </Field>
         <Field label="Price from (USD cents)" error={errors.priceFrom?.message}>
-          <Input type="number" className={inputClass} {...register('priceFrom', { valueAsNumber: true })} />
+          <Input
+            type="number"
+            className={inputClass}
+            {...register('priceFrom', {
+              setValueAs: (value) => (value === '' || value === null ? undefined : Number(value)),
+            })}
+          />
         </Field>
       </div>
       <Field label="Bio">
@@ -106,10 +103,23 @@ function InfluencerProfileForm({ profile, token, onSave }: { profile?: Influence
           <Input className={inputClass} placeholder="@handle" {...register('instagramHandle')} />
         </Field>
         <Field label="Followers" error={errors.instagramFollowers?.message}>
-          <Input type="number" className={inputClass} {...register('instagramFollowers', { valueAsNumber: true })} />
+          <Input
+            type="number"
+            className={inputClass}
+            {...register('instagramFollowers', {
+              setValueAs: (value) => (value === '' || value === null ? undefined : Number(value)),
+            })}
+          />
         </Field>
         <Field label="ER (0–1)" error={errors.instagramER?.message}>
-          <Input type="number" step="0.001" className={inputClass} {...register('instagramER', { valueAsNumber: true })} />
+          <Input
+            type="number"
+            step="0.001"
+            className={inputClass}
+            {...register('instagramER', {
+              setValueAs: (value) => (value === '' || value === null ? undefined : Number(value)),
+            })}
+          />
         </Field>
       </div>
       <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider pt-2">TikTok</p>
@@ -118,7 +128,13 @@ function InfluencerProfileForm({ profile, token, onSave }: { profile?: Influence
           <Input className={inputClass} placeholder="@handle" {...register('tiktokHandle')} />
         </Field>
         <Field label="Followers" error={errors.tiktokFollowers?.message}>
-          <Input type="number" className={inputClass} {...register('tiktokFollowers', { valueAsNumber: true })} />
+          <Input
+            type="number"
+            className={inputClass}
+            {...register('tiktokFollowers', {
+              setValueAs: (value) => (value === '' || value === null ? undefined : Number(value)),
+            })}
+          />
         </Field>
       </div>
       <button type="submit" className={buttonVariants() + ' bg-[#4F6EF7] hover:bg-[#3D5CE5] text-white'} disabled={mutation.isPending}>

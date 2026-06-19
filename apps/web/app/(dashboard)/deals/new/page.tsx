@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,7 +26,7 @@ type FormData = z.infer<typeof schema>;
 
 const FORMATS = ['STORY', 'REEL', 'POST', 'VIDEO', 'INTEGRATION'] as const;
 
-export default function NewDealPage() {
+function NewDealPageContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -143,5 +144,13 @@ export default function NewDealPage() {
         </Button>
       </form>
     </div>
+  );
+}
+
+export default function NewDealPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20 text-zinc-400">Loading deal form...</div>}>
+      <NewDealPageContent />
+    </Suspense>
   );
 }
