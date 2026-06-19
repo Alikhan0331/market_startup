@@ -14,28 +14,50 @@ export class YoutubeApiService {
     });
   }
 
-  // Получить канал по @handle или по channelId
-  async getChannel(input: string): Promise<youtube_v3.Schema$Channel | null> {
-    try {
-      const isChannelId = input.startsWith('UC') && input.length > 20;
-      const params: youtube_v3.Params$Resource$Channels$List = {
+  // Получить канал по @handle, имени или channelId
+async getChannel(input: string): Promise<youtube_v3.Schema$Channel | null> {
+  try {
+    const normalized = input.replace('@', '').trim();
+
+    // Если передан Channel ID
+    const isChannelId =
+      normalized.startsWith('UC') && normalized.length > 20;
+
+    if (isChannelId) {
+      const channelRes = await this.youtube.channels.list({
         part: ['snippet', 'statistics', 'contentDetails'],
-      };
+        id: [normalized],
+      });
 
-      if (isChannelId) {
-        params.id = [input];
-      } else {
-        // убираем @ если есть
-        params.forHandle = input.replace('@', '');
-      }
+      return channelRes.data.items?.[0] ?? null;
+    }
 
-      const res = await this.youtube.channels.list(params);
-      return res.data.items?.[0] ?? null;
-    } catch (e) {
-      this.logger.error('getChannel error', e);
+    // Ищем канал через Search API
+    const searchRes = await this.youtube.search.list({
+      part: ['snippet'],
+      q: normalized,
+      type: ['channel'],
+      maxResults: 1,
+    });
+
+    const channelId =
+      searchRes.data.items?.[0]?.snippet?.channelId;
+
+    if (!channelId) {
       return null;
     }
+
+    const channelRes = await this.youtube.channels.list({
+      part: ['snippet', 'statistics', 'contentDetails'],
+      id: [channelId],
+    });
+
+    return channelRes.data.items?.[0] ?? null;
+  } catch (e) {
+    this.logger.error('getChannel error', e);
+    return null;
   }
+}
 
   // Получить последние N видео из uploads-плейлиста
   async getRecentVideoIds(
