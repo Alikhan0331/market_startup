@@ -1,4 +1,5 @@
-import { DefaultSession, DefaultJWT } from 'next-auth';
+import { DefaultSession } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 import { UserRole } from './api';
 
 declare module 'next-auth' {
@@ -23,7 +24,7 @@ declare module 'next-auth' {
 }
 
 declare module 'next-auth/jwt' {
-  interface JWT extends DefaultJWT {
+  interface JWT {
     id: string;
     role: UserRole;
     isVerified: boolean;
