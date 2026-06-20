@@ -4,8 +4,7 @@ import { Repository } from 'typeorm';
 import { InfluencerProfile } from '../profiles/entities/influencer-profile.entity';
 import { BrandProfile } from '../profiles/entities/brand-profile.entity';
 
-// Industry → content category affinity map
-// Keys are lowercase for case-insensitive matching.
+// Industry → content category affinity map (lowercase keys)
 const INDUSTRY_CATEGORY_MAP: Record<string, string[]> = {
   fashion:       ['Fashion', 'Lifestyle', 'Beauty', 'Travel'],
   beauty:        ['Beauty', 'Fashion', 'Lifestyle', 'Health'],
@@ -33,17 +32,18 @@ const INDUSTRY_CATEGORY_MAP: Record<string, string[]> = {
   ecommerce:     ['Lifestyle', 'Fashion', 'Shopping', 'Technology'],
 };
 
-/** Resolve a potentially comma-separated industry string into a merged, de-duped affinity list */
+/**
+ * Resolve a potentially comma-separated industry string into a
+ * merged, de-duplicated affinity list.
+ */
 function resolveAffinities(industry: string | null | undefined): string[] {
   if (!industry) return [];
   const segments = industry.split(',').map((s) => s.trim()).filter(Boolean);
   const all: string[] = [];
   for (const seg of segments) {
-    const key = seg.toLowerCase();
-    const cats = INDUSTRY_CATEGORY_MAP[key];
+    const cats = INDUSTRY_CATEGORY_MAP[seg.toLowerCase()];
     if (cats) all.push(...cats);
   }
-  // De-duplicate
   return [...new Set(all)];
 }
 
@@ -54,7 +54,7 @@ export interface MatchResult {
 }
 
 export interface MatchBreakdown {
-  categoryScore: number;        // 0-30  — how well categories align with brand industry
+  categoryScore: number;        // 0-30  — how many of brand's affinities the influencer covers
   countryScore: number;         // 0-20  — same country bonus
   engagementScore: number;      // 0-25  — overall influencer quality score
   budgetScore: number;          // 0-15  — price compatibility
@@ -72,10 +72,7 @@ export class MatchingService {
     private brandRepo: Repository<BrandProfile>,
   ) {}
 
-  async getRecommended(
-    brandUserId: string,
-    limit = 20,
-  ): Promise<MatchResult[]> {
+  async getRecommended(brandUserId: string, limit = 20): Promise<MatchResult[]> {
     const brand = await this.brandRepo.findOne({ where: { userId: brandUserId } });
     if (!brand) throw new NotFoundException('Brand profile not found');
 
@@ -84,12 +81,10 @@ export class MatchingService {
       order: { createdAt: 'DESC' },
     });
 
-    const results: MatchResult[] = influencers
+    return influencers
       .map((inf) => this.scoreMatch(brand, inf))
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, limit);
-
-    return results;
   }
 
   private scoreMatch(brand: BrandProfile, influencer: InfluencerProfile): MatchResult {
@@ -103,35 +98,37 @@ export class MatchingService {
       reasons: [],
     };
 
-    // 1. Category alignment (0-30)
-    // brand.industry may be multi-value e.g. "Fashion, Tech"
+    // ── 1. Category alignment (0–30) ─────────────────────────────────────────
+    // Score = how many of the BRAND'S affinities the influencer covers.
+    // Reaching 3 unique hits out of the brand's affinity list = full 30 pts.
+    // This rewards influencers who are relevant to the brand's niche regardless
+    // of how many total categories they have.
     const affinities = resolveAffinities(brand.industry);
     const influencerCats: string[] = Array.isArray(influencer.categories)
       ? (influencer.categories as string[]).filter(Boolean)
       : [];
 
-    const matched = influencerCats.filter(
-      (c) => affinities.some((a) => a.toLowerCase() === c.toLowerCase()),
+    const matched = influencerCats.filter((c) =>
+      affinities.some((a) => a.toLowerCase() === c.toLowerCase()),
     );
     breakdown.matchedCategories = matched;
 
-    if (affinities.length > 0 && influencerCats.length > 0) {
-      // score proportional to fraction of influencer's categories that hit the brand's affinity list
-      const hitRatio = matched.length / influencerCats.length;
-      breakdown.categoryScore = Math.min(hitRatio * 30, 30);
-    } else if (influencerCats.length > 0 && affinities.length === 0) {
-      // Brand has no recognised industry but influencer has categories — give a partial base
-      breakdown.categoryScore = 5;
+    if (affinities.length > 0) {
+      // coverage = unique brand affinities hit, capped so 3 hits = 100%
+      const coverage = matched.length / Math.min(affinities.length, 3);
+      breakdown.categoryScore = Math.min(coverage * 30, 30);
+    } else {
+      // Brand has no recognised industry — small participation bonus
+      breakdown.categoryScore = influencerCats.length > 0 ? 5 : 0;
     }
 
     if (matched.length > 0) {
-      const industryLabel = brand.industry ?? 'your industry';
       breakdown.reasons.push(
-        `Content matches ${industryLabel} (${matched.slice(0, 3).join(', ')})`,
+        `Content matches ${brand.industry ?? 'your industry'} (${matched.slice(0, 3).join(', ')})`,
       );
     }
 
-    // 2. Country match (0-20)
+    // ── 2. Country match (0–20) ───────────────────────────────────────────────
     const brandCountry = (brand.country ?? '').toLowerCase().trim();
     const infCountry = (influencer.country ?? '').toLowerCase().trim();
     if (brandCountry && infCountry) {
@@ -144,8 +141,9 @@ export class MatchingService {
       }
     }
 
-    // 3. Quality score (0-25)
-    const qualityScore = influencer.overallScore != null ? Number(influencer.overallScore) : 0;
+    // ── 3. Quality score (0–25) ───────────────────────────────────────────────
+    const qualityScore =
+      influencer.overallScore != null ? Number(influencer.overallScore) : 0;
     breakdown.engagementScore = (qualityScore / 10) * 25;
     if (qualityScore >= 7) {
       breakdown.reasons.push(`High quality score (${qualityScore.toFixed(1)}/10)`);
@@ -153,7 +151,7 @@ export class MatchingService {
       breakdown.reasons.push('Score pending — not yet calculated');
     }
 
-    // 4. Budget compatibility (0-15)
+    // ── 4. Budget compatibility (0–15) ───────────────────────────────────────
     if (influencer.priceFrom != null && influencer.priceTo != null) {
       breakdown.budgetScore = 15;
       breakdown.reasons.push('Has defined pricing');
@@ -162,7 +160,7 @@ export class MatchingService {
       breakdown.reasons.push('Has starting price listed');
     }
 
-    // 5. Verification bonus (0-10)
+    // ── 5. Verification bonus (0–10) ─────────────────────────────────────────
     switch (influencer.verificationStatus) {
       case 'VERIFIED':
         breakdown.verificationScore = 10;
@@ -170,7 +168,6 @@ export class MatchingService {
         break;
       case 'UNVERIFIED':
         breakdown.verificationScore = 4;
-        breakdown.reasons.push('Profile not yet verified');
         break;
       case 'WARNING':
         breakdown.verificationScore = 1;
