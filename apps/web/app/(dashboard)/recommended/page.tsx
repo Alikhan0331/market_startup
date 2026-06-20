@@ -10,10 +10,10 @@ import { formatFollowers, formatPrice, formatER } from '../../../lib/utils/forma
 import Link from 'next/link';
 import { buttonVariants } from '../../../components/ui/button';
 import { cn } from '../../../lib/utils';
-import { Sparkles, CheckCircle2, MapPin, Tag, DollarSign, TrendingUp } from 'lucide-react';
+import { Sparkles, CheckCircle2, MapPin, Tag, DollarSign, TrendingUp, UserCircle2 } from 'lucide-react';
 
 function ReasonIcon({ reason }: { reason: string }) {
-  if (reason.includes('country') || reason.includes('region'))
+  if (reason.includes('country') || reason.includes('region') || reason.includes('country'))
     return <MapPin className="h-3 w-3 shrink-0" />;
   if (reason.includes('Content') || reason.includes('industry'))
     return <Tag className="h-3 w-3 shrink-0" />;
@@ -27,9 +27,9 @@ function ReasonIcon({ reason }: { reason: string }) {
 function MatchCard({ result }: { result: MatchResult }) {
   const { influencer, matchScore, breakdown } = result;
   const topFollowers = Math.max(
-    influencer.instagramFollowers,
-    influencer.tiktokFollowers,
-    influencer.youtubeSubscribers,
+    influencer.instagramFollowers ?? 0,
+    influencer.tiktokFollowers ?? 0,
+    influencer.youtubeSubscribers ?? 0,
   );
 
   return (
@@ -40,12 +40,12 @@ function MatchCard({ result }: { result: MatchResult }) {
           <Avatar className="h-10 w-10 shrink-0">
             {influencer.avatarUrl && <AvatarImage src={influencer.avatarUrl} />}
             <AvatarFallback className="bg-[#4F6EF7]/20 text-[#4F6EF7] text-sm font-medium">
-              {influencer.displayName.slice(0, 2).toUpperCase()}
+              {(influencer.displayName ?? '?').slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-100 truncate">{influencer.displayName}</p>
-            <p className="text-xs text-zinc-500">{influencer.country}</p>
+            <p className="text-xs text-zinc-500">{influencer.country ?? 'Unknown country'}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -57,11 +57,11 @@ function MatchCard({ result }: { result: MatchResult }) {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2 mb-3 text-center">
         <div>
-          <p className="text-sm font-semibold text-zinc-100">{formatFollowers(topFollowers)}</p>
+          <p className="text-sm font-semibold text-zinc-100">{topFollowers > 0 ? formatFollowers(topFollowers) : '—'}</p>
           <p className="text-xs text-zinc-500">followers</p>
         </div>
         <div>
-          <p className="text-sm font-semibold text-zinc-100">{formatER(influencer.instagramER)}</p>
+          <p className="text-sm font-semibold text-zinc-100">{influencer.instagramER ? formatER(influencer.instagramER) : '—'}</p>
           <p className="text-xs text-zinc-500">ER</p>
         </div>
         <div>
@@ -146,7 +146,17 @@ export default function RecommendedPage() {
     queryKey: ['recommended', token],
     queryFn: () => matchingApi.getRecommended(20, token),
     enabled: !!token,
+    retry: false,
   });
+
+  // Determine helpful error message based on status code
+  const errorCode = (error as any)?.statusCode;
+  const errorMessage =
+    errorCode === 404
+      ? "You don't have a brand profile yet. Go to Profile and save your details first."
+      : errorCode === 403
+      ? 'This page is only available for brand accounts.'
+      : 'Failed to load recommendations. Please try again.';
 
   return (
     <div className="flex flex-col gap-6">
@@ -192,17 +202,21 @@ export default function RecommendedPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+          <UserCircle2 className="h-10 w-10 text-zinc-600" />
           <p className="text-lg font-medium text-zinc-300">Unable to load recommendations</p>
-          <p className="text-sm text-zinc-500 mt-1">
-            Make sure your brand profile is complete (industry and country are required for matching).
-          </p>
+          <p className="text-sm text-zinc-500 mt-1 max-w-sm">{errorMessage}</p>
+          {errorCode === 404 && (
+            <Link href="/profile" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'border-zinc-700 text-zinc-300 mt-2')}>
+              Go to Profile
+            </Link>
+          )}
         </div>
       ) : data?.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Sparkles className="h-8 w-8 text-zinc-600 mb-3" />
-          <p className="text-lg font-medium text-zinc-300">No recommendations yet</p>
-          <p className="text-sm text-zinc-500 mt-1">Complete your brand profile to get personalised matches.</p>
+          <p className="text-lg font-medium text-zinc-300">No influencers found</p>
+          <p className="text-sm text-zinc-500 mt-1">No influencer profiles exist yet. Check back later.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
