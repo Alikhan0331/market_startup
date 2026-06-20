@@ -9,10 +9,12 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { User } from '../common/entities/user.entity';
 import { RefreshToken } from '../common/entities/refresh-token.entity';
+import { PasswordResetToken } from '../common/entities/password-reset-token.entity';
+import { EmailService } from './email.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, RefreshToken]),
+    TypeOrmModule.forFeature([User, RefreshToken, PasswordResetToken]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -24,7 +26,7 @@ import { RefreshToken } from '../common/entities/refresh-token.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy],
+  providers: [AuthService, EmailService, JwtStrategy, GoogleStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

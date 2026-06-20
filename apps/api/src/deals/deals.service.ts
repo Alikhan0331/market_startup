@@ -25,6 +25,7 @@ export class DealsService {
     const deal = this.dealsRepo.create({
       brandId: brandProfile.id,
       influencerId: dto.influencerId,
+      ...(dto.campaignId && { campaignId: dto.campaignId }),
       budget: dto.budget,
       format: dto.format,
       description: dto.description,

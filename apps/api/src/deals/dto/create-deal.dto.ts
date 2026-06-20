@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsInt, IsEnum, IsDateString, IsUUID, Min } from 'class-validator';
+import { IsString, IsInt, IsEnum, IsDateString, IsUUID, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DealFormat } from '../entities/deal.entity';
 
@@ -7,6 +7,11 @@ export class CreateDealDto {
   @ApiProperty()
   @IsUUID()
   influencerId: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
 
   @ApiProperty()
   @IsInt()

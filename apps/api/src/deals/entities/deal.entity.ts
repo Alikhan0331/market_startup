@@ -9,6 +9,10 @@ import {
 } from 'typeorm';
 import { BrandProfile } from '../../profiles/entities/brand-profile.entity';
 import { InfluencerProfile } from '../../profiles/entities/influencer-profile.entity';
+import { Campaign } from '../../campaigns/entities/campaign.entity';
+import { DealFormat } from './deal-format.enum';
+
+export { DealFormat };
 
 export enum DealStatus {
   PENDING = 'PENDING',
@@ -18,14 +22,6 @@ export enum DealStatus {
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
-}
-
-export enum DealFormat {
-  STORY = 'STORY',
-  REEL = 'REEL',
-  POST = 'POST',
-  VIDEO = 'VIDEO',
-  INTEGRATION = 'INTEGRATION',
 }
 
 @Entity('deals')
@@ -61,6 +57,13 @@ export class Deal {
 
   @Column({ type: 'date' })
   deadline: string;
+
+  @Column({ nullable: true })
+  campaignId: string;
+
+  @ManyToOne(() => Campaign, (c) => c.deals, { nullable: true, eager: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'campaignId' })
+  campaign: Campaign;
 
   @Column({ nullable: true })
   counterBudget: number;

@@ -120,6 +120,12 @@ function LoginPageContent() {
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </Button>
+
+          <p className="text-center text-sm">
+            <Link href="/forgot-password" className="text-zinc-500 hover:text-zinc-300 underline">
+              Forgot password?
+            </Link>
+          </p>
         </form>
 
         <p className="text-center text-sm text-zinc-400">

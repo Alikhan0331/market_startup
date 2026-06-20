@@ -9,6 +9,7 @@ import { DealsModule } from './deals/deals.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { YoutubeModule } from './youtube/youtube.module';
 import { MatchingModule } from './matching/matching.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -36,6 +37,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     YoutubeModule,
     ScoringModule,
     MatchingModule,
+    CampaignsModule,
   ],
   providers: [
     {

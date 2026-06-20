@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,9 +13,11 @@ import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { User, UserRole } from '../common/entities/user.entity';
 import { RefreshToken } from '../common/entities/refresh-token.entity';
+import { PasswordResetToken } from '../common/entities/password-reset-token.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { EmailService } from './email.service';
 
 @Injectable()
 export class AuthService {
@@ -23,8 +26,11 @@ export class AuthService {
     private usersRepo: Repository<User>,
     @InjectRepository(RefreshToken)
     private refreshTokensRepo: Repository<RefreshToken>,
+    @InjectRepository(PasswordResetToken)
+    private resetTokensRepo: Repository<PasswordResetToken>,
     private jwtService: JwtService,
     private config: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -130,6 +136,36 @@ export class AuthService {
         isVerified: user.isVerified,
       },
     };
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.usersRepo.findOne({ where: { email } });
+    // Always return success to avoid email enumeration
+    if (!user || !user.password) return;
+
+    await this.resetTokensRepo.delete({ userId: user.id });
+
+    const rawToken = uuidv4();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+    await this.resetTokensRepo.save(
+      this.resetTokensRepo.create({ token: rawToken, userId: user.id, expiresAt }),
+    );
+
+    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
+    await this.emailService.sendPasswordReset(email, resetUrl);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const record = await this.resetTokensRepo.findOne({ where: { token } });
+    if (!record || record.expiresAt < new Date()) {
+      await this.resetTokensRepo.delete({ token });
+      throw new BadRequestException('Token is invalid or expired');
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await this.usersRepo.update(record.userId, { password: hashed });
+    await this.resetTokensRepo.delete({ token });
   }
 
   private hashToken(token: string): string {

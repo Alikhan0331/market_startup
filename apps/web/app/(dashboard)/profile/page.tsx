@@ -14,6 +14,7 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { InfluencerProfile, BrandProfile } from '../../../types/api';
 import { YoutubeConnector } from '../../../components/shared/YoutubeConnector';
+import { ScoreBreakdown } from '../../../components/shared/ScoreBreakdown';
 
 const influencerSchema = z.object({
   displayName: z.string().min(1, 'Required'),
@@ -258,6 +259,7 @@ export default function ProfilePage() {
       {isInfluencer ? (
         <>
           <InfluencerProfileForm profile={influencerProfile} token={token} onSave={invalidate} />
+          {influencerProfile && <ScoreBreakdown profile={influencerProfile} />}
           <YoutubeConnector
             token={token}
             currentHandle={influencerProfile?.youtubeHandle}

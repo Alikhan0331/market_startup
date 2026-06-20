@@ -9,6 +9,7 @@ export const dealsApi = {
   create: (
     data: {
       influencerId: string;
+      campaignId?: string;
       budget: number;
       format: DealFormat;
       description: string;
