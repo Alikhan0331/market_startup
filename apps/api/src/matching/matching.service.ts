@@ -5,23 +5,47 @@ import { InfluencerProfile } from '../profiles/entities/influencer-profile.entit
 import { BrandProfile } from '../profiles/entities/brand-profile.entity';
 
 // Industry → content category affinity map
+// Keys are lowercase for case-insensitive matching.
 const INDUSTRY_CATEGORY_MAP: Record<string, string[]> = {
-  Fashion: ['Fashion', 'Lifestyle', 'Beauty', 'Travel'],
-  Beauty: ['Beauty', 'Fashion', 'Lifestyle', 'Health'],
-  Technology: ['Technology', 'Gaming', 'Science', 'Education'],
-  Food: ['Food', 'Lifestyle', 'Travel', 'Health'],
-  Travel: ['Travel', 'Lifestyle', 'Photography', 'Adventure'],
-  Fitness: ['Fitness', 'Health', 'Lifestyle', 'Sports'],
-  Gaming: ['Gaming', 'Technology', 'Entertainment', 'Esports'],
-  Finance: ['Finance', 'Business', 'Education', 'Technology'],
-  Health: ['Health', 'Fitness', 'Lifestyle', 'Wellness'],
-  Entertainment: ['Entertainment', 'Music', 'Movies', 'Lifestyle'],
-  Education: ['Education', 'Technology', 'Science', 'Business'],
-  Sports: ['Sports', 'Fitness', 'Health', 'Lifestyle'],
-  Automotive: ['Automotive', 'Technology', 'Travel', 'Lifestyle'],
-  Retail: ['Lifestyle', 'Fashion', 'Shopping', 'Home'],
-  Music: ['Music', 'Entertainment', 'Lifestyle', 'Art'],
+  fashion:       ['Fashion', 'Lifestyle', 'Beauty', 'Travel'],
+  beauty:        ['Beauty', 'Fashion', 'Lifestyle', 'Health'],
+  technology:    ['Technology', 'Gaming', 'Science', 'Education'],
+  tech:          ['Technology', 'Gaming', 'Science', 'Education'],
+  it:            ['Technology', 'Gaming', 'Science', 'Education'],
+  software:      ['Technology', 'Gaming', 'Science', 'Education'],
+  food:          ['Food', 'Lifestyle', 'Travel', 'Health'],
+  travel:        ['Travel', 'Lifestyle', 'Photography', 'Adventure'],
+  fitness:       ['Fitness', 'Health', 'Lifestyle', 'Sports'],
+  gaming:        ['Gaming', 'Technology', 'Entertainment', 'Esports'],
+  finance:       ['Finance', 'Business', 'Education', 'Technology'],
+  health:        ['Health', 'Fitness', 'Lifestyle', 'Wellness'],
+  wellness:      ['Health', 'Fitness', 'Lifestyle', 'Wellness'],
+  entertainment: ['Entertainment', 'Music', 'Movies', 'Lifestyle'],
+  education:     ['Education', 'Technology', 'Science', 'Business'],
+  sports:        ['Sports', 'Fitness', 'Health', 'Lifestyle'],
+  automotive:    ['Automotive', 'Technology', 'Travel', 'Lifestyle'],
+  retail:        ['Lifestyle', 'Fashion', 'Shopping', 'Home'],
+  music:         ['Music', 'Entertainment', 'Lifestyle', 'Art'],
+  art:           ['Art', 'Lifestyle', 'Photography', 'Entertainment'],
+  photography:   ['Photography', 'Art', 'Lifestyle', 'Travel'],
+  business:      ['Business', 'Finance', 'Education', 'Technology'],
+  marketing:     ['Business', 'Lifestyle', 'Technology', 'Education'],
+  ecommerce:     ['Lifestyle', 'Fashion', 'Shopping', 'Technology'],
 };
+
+/** Resolve a potentially comma-separated industry string into a merged, de-duped affinity list */
+function resolveAffinities(industry: string | null | undefined): string[] {
+  if (!industry) return [];
+  const segments = industry.split(',').map((s) => s.trim()).filter(Boolean);
+  const all: string[] = [];
+  for (const seg of segments) {
+    const key = seg.toLowerCase();
+    const cats = INDUSTRY_CATEGORY_MAP[key];
+    if (cats) all.push(...cats);
+  }
+  // De-duplicate
+  return [...new Set(all)];
+}
 
 export interface MatchResult {
   influencer: InfluencerProfile;
@@ -55,7 +79,6 @@ export class MatchingService {
     const brand = await this.brandRepo.findOne({ where: { userId: brandUserId } });
     if (!brand) throw new NotFoundException('Brand profile not found');
 
-    // Fetch all influencers with no ordering dependency on nullable score
     const influencers = await this.influencerRepo.find({
       take: 500,
       order: { createdAt: 'DESC' },
@@ -81,18 +104,32 @@ export class MatchingService {
     };
 
     // 1. Category alignment (0-30)
-    const affinities = brand.industry ? (INDUSTRY_CATEGORY_MAP[brand.industry] ?? []) : [];
+    // brand.industry may be multi-value e.g. "Fashion, Tech"
+    const affinities = resolveAffinities(brand.industry);
     const influencerCats: string[] = Array.isArray(influencer.categories)
-      ? influencer.categories.filter(Boolean)
+      ? (influencer.categories as string[]).filter(Boolean)
       : [];
+
     const matched = influencerCats.filter(
       (c) => affinities.some((a) => a.toLowerCase() === c.toLowerCase()),
     );
     breakdown.matchedCategories = matched;
-    const categoryRatio = affinities.length > 0 ? matched.length / Math.min(affinities.length, 3) : 0;
-    breakdown.categoryScore = Math.min(categoryRatio * 30, 30);
-    if (matched.length > 0)
-      breakdown.reasons.push(`Content matches ${brand.industry} industry (${matched.join(', ')})`);
+
+    if (affinities.length > 0 && influencerCats.length > 0) {
+      // score proportional to fraction of influencer's categories that hit the brand's affinity list
+      const hitRatio = matched.length / influencerCats.length;
+      breakdown.categoryScore = Math.min(hitRatio * 30, 30);
+    } else if (influencerCats.length > 0 && affinities.length === 0) {
+      // Brand has no recognised industry but influencer has categories — give a partial base
+      breakdown.categoryScore = 5;
+    }
+
+    if (matched.length > 0) {
+      const industryLabel = brand.industry ?? 'your industry';
+      breakdown.reasons.push(
+        `Content matches ${industryLabel} (${matched.slice(0, 3).join(', ')})`,
+      );
+    }
 
     // 2. Country match (0-20)
     const brandCountry = (brand.country ?? '').toLowerCase().trim();
@@ -108,13 +145,13 @@ export class MatchingService {
     }
 
     // 3. Quality score (0-25)
-    // null overallScore → give a neutral base of 5 so unscored influencers still appear
     const qualityScore = influencer.overallScore != null ? Number(influencer.overallScore) : 0;
     breakdown.engagementScore = (qualityScore / 10) * 25;
-    if (qualityScore >= 7)
+    if (qualityScore >= 7) {
       breakdown.reasons.push(`High quality score (${qualityScore.toFixed(1)}/10)`);
-    else if (influencer.overallScore == null)
+    } else if (influencer.overallScore == null) {
       breakdown.reasons.push('Score pending — not yet calculated');
+    }
 
     // 4. Budget compatibility (0-15)
     if (influencer.priceFrom != null && influencer.priceTo != null) {
@@ -138,9 +175,8 @@ export class MatchingService {
       case 'WARNING':
         breakdown.verificationScore = 1;
         break;
-      case 'SUSPICIOUS':
+      default:
         breakdown.verificationScore = 0;
-        break;
     }
 
     const matchScore = Math.round(
