@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { InfluencerProfile } from '../profiles/entities/influencer-profile.entity';
 import { BrandProfile } from '../profiles/entities/brand-profile.entity';
 
-// Industry → content category affinity map (lowercase keys)
 const INDUSTRY_CATEGORY_MAP: Record<string, string[]> = {
   fashion:       ['Fashion', 'Lifestyle', 'Beauty', 'Travel'],
   beauty:        ['Beauty', 'Fashion', 'Lifestyle', 'Health'],
@@ -32,10 +31,6 @@ const INDUSTRY_CATEGORY_MAP: Record<string, string[]> = {
   ecommerce:     ['Lifestyle', 'Fashion', 'Shopping', 'Technology'],
 };
 
-/**
- * Resolve a potentially comma-separated industry string into a
- * merged, de-duplicated affinity list.
- */
 function resolveAffinities(industry: string | null | undefined): string[] {
   if (!industry) return [];
   const segments = industry.split(',').map((s) => s.trim()).filter(Boolean);
@@ -49,18 +44,18 @@ function resolveAffinities(industry: string | null | undefined): string[] {
 
 export interface MatchResult {
   influencer: InfluencerProfile;
-  matchScore: number;           // 0-100
+  matchScore: number;
   breakdown: MatchBreakdown;
 }
 
 export interface MatchBreakdown {
-  categoryScore: number;        // 0-30  — how many of brand's affinities the influencer covers
-  countryScore: number;         // 0-20  — same country bonus
-  engagementScore: number;      // 0-25  — overall influencer quality score
-  budgetScore: number;          // 0-15  — price compatibility
-  verificationScore: number;    // 0-10  — verified status bonus
-  matchedCategories: string[];  // human-readable list of matched categories
-  reasons: string[];            // human-readable match reasons
+  categoryScore: number;
+  countryScore: number;
+  engagementScore: number;
+  budgetScore: number;
+  verificationScore: number;
+  matchedCategories: string[];
+  reasons: string[];
 }
 
 @Injectable()
@@ -98,30 +93,32 @@ export class MatchingService {
       reasons: [],
     };
 
-    // ── 1. Category alignment (0–30) ─────────────────────────────────────────
-    // Score = how many of the BRAND'S affinities the influencer covers.
-    // Reaching 3 unique hits out of the brand's affinity list = full 30 pts.
-    // This rewards influencers who are relevant to the brand's niche regardless
-    // of how many total categories they have.
+    // ── 1. Category alignment (0–30) ──────────────────────────────────────────
+    // Resolve brand industry → affinity list (e.g. "Education" → ["Education","Technology","Science","Business"])
     const affinities = resolveAffinities(brand.industry);
+
+    // Parse influencer categories from simple-array, stripping any empty strings
+    // that TypeORM produces when the column value is the empty-string default.
     const influencerCats: string[] = Array.isArray(influencer.categories)
-      ? (influencer.categories as string[]).filter(Boolean)
+      ? (influencer.categories as string[]).map((c) => c.trim()).filter(Boolean)
       : [];
 
+    // matched = influencer's own categories that appear in the brand affinity list
     const matched = influencerCats.filter((c) =>
       affinities.some((a) => a.toLowerCase() === c.toLowerCase()),
     );
     breakdown.matchedCategories = matched;
 
     if (affinities.length > 0) {
-      // coverage = unique brand affinities hit, capped so 3 hits = 100%
+      // Score = how many of brand's affinities the influencer covers.
+      // 3 unique hits → full 30 pts.
       const coverage = matched.length / Math.min(affinities.length, 3);
       breakdown.categoryScore = Math.min(coverage * 30, 30);
     } else {
-      // Brand has no recognised industry — small participation bonus
       breakdown.categoryScore = influencerCats.length > 0 ? 5 : 0;
     }
 
+    // Reason: show the ACTUAL matched categories of the influencer, not the brand's affinity list
     if (matched.length > 0) {
       breakdown.reasons.push(
         `Content matches ${brand.industry ?? 'your industry'} (${matched.slice(0, 3).join(', ')})`,
@@ -147,11 +144,9 @@ export class MatchingService {
     breakdown.engagementScore = (qualityScore / 10) * 25;
     if (qualityScore >= 7) {
       breakdown.reasons.push(`High quality score (${qualityScore.toFixed(1)}/10)`);
-    } else if (influencer.overallScore == null) {
-      breakdown.reasons.push('Score pending — not yet calculated');
     }
 
-    // ── 4. Budget compatibility (0–15) ───────────────────────────────────────
+    // ── 4. Budget compatibility (0–15) ────────────────────────────────────────
     if (influencer.priceFrom != null && influencer.priceTo != null) {
       breakdown.budgetScore = 15;
       breakdown.reasons.push('Has defined pricing');
@@ -160,7 +155,7 @@ export class MatchingService {
       breakdown.reasons.push('Has starting price listed');
     }
 
-    // ── 5. Verification bonus (0–10) ─────────────────────────────────────────
+    // ── 5. Verification bonus (0–10) ──────────────────────────────────────────
     switch (influencer.verificationStatus) {
       case 'VERIFIED':
         breakdown.verificationScore = 10;
