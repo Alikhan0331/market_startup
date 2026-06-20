@@ -19,19 +19,21 @@ export class CreateInfluencerDto {
   @IsString()
   bio?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  country: string;
+  country?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   city?: string;
 
-  @ApiProperty({ type: [String] })
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  categories: string[];
+  categories?: string[];
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()

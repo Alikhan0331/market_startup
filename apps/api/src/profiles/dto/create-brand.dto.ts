@@ -11,18 +11,20 @@ export class CreateBrandDto {
   @IsUrl()
   website?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  industry: string;
+  industry?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  country: string;
+  country?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

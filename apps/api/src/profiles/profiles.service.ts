@@ -33,10 +33,25 @@ export class ProfilesService {
     return this.brandRepo.save(profile);
   }
 
+  /** Returns null instead of throwing when no profile exists yet */
+  async getMyBrandProfileOrNull(userId: string): Promise<BrandProfile | null> {
+    return this.brandRepo.findOne({ where: { userId } });
+  }
+
   async getMyBrandProfile(userId: string): Promise<BrandProfile> {
     const profile = await this.brandRepo.findOne({ where: { userId } });
     if (!profile) throw new NotFoundException('Brand profile not found');
     return profile;
+  }
+
+  /** Create on first save, update afterwards */
+  async upsertBrandProfile(userId: string, dto: UpdateBrandDto): Promise<BrandProfile> {
+    let profile = await this.brandRepo.findOne({ where: { userId } });
+    if (!profile) {
+      profile = this.brandRepo.create({ userId });
+    }
+    Object.assign(profile, dto);
+    return this.brandRepo.save(profile);
   }
 
   async updateBrandProfile(userId: string, dto: UpdateBrandDto): Promise<BrandProfile> {
@@ -63,10 +78,30 @@ export class ProfilesService {
     return this.influencerRepo.save(profile);
   }
 
+  /** Returns null instead of throwing when no profile exists yet */
+  async getMyInfluencerProfileOrNull(userId: string): Promise<InfluencerProfile | null> {
+    return this.influencerRepo.findOne({ where: { userId } });
+  }
+
   async getMyInfluencerProfile(userId: string): Promise<InfluencerProfile> {
     const profile = await this.influencerRepo.findOne({ where: { userId } });
     if (!profile) throw new NotFoundException('Influencer profile not found');
     return profile;
+  }
+
+  /** Create on first save, update afterwards */
+  async upsertInfluencerProfile(
+    userId: string,
+    dto: UpdateInfluencerDto,
+  ): Promise<InfluencerProfile> {
+    let profile = await this.influencerRepo.findOne({ where: { userId } });
+    if (!profile) {
+      profile = this.influencerRepo.create({ userId, displayName: (dto as any).displayName ?? 'New Influencer' });
+    }
+    Object.assign(profile, dto);
+    const saved = await this.influencerRepo.save(profile);
+    this.scoringService.calculateScore(saved.id).catch(() => {});
+    return saved;
   }
 
   async updateInfluencerProfile(
@@ -106,17 +141,9 @@ export class ProfilesService {
   ): Promise<InfluencerProfile> {
     const profile = await this.influencerRepo.findOne({ where: { id: influencerId } });
     if (!profile) throw new NotFoundException('Influencer profile not found');
-
-    Object.assign(profile, {
-      ...stats,
-      youtubeLastSyncAt: new Date(),
-    });
-
+    Object.assign(profile, { ...stats, youtubeLastSyncAt: new Date() });
     const saved = await this.influencerRepo.save(profile);
-
-    // Пересчитываем общий скор после обновления статистики
     this.scoringService.calculateScore(saved.id).catch(() => {});
-
     return saved;
   }
 }

@@ -37,7 +37,7 @@ export class InfluencerProfile {
   @Column({ nullable: true })
   avatarUrl: string;
 
-  @Column()
+  @Column({ nullable: true })
   country: string;
 
   @Column({ nullable: true })
@@ -89,25 +89,25 @@ export class InfluencerProfile {
   youtubeAvgViews: number;
 
   @Column({ nullable: true })
-  youtubeChannelId: string;           // UC... id канала (нужен для API запросов)
+  youtubeChannelId: string;
 
   @Column({ default: 0 })
-  youtubeMedianViews: number;         // медиана просмотров (надёжнее среднего)
+  youtubeMedianViews: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
-  youtubeER: number;                  // (likes + comments) / views * 100
+  youtubeER: number;
 
   @Column({ default: 0 })
-  youtubeVideoCount: number;          // количество проанализированных видео
+  youtubeVideoCount: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
-  youtubeReachRate: number;           // medianViews / subscribers * 100
+  youtubeReachRate: number;
 
   @Column({ type: 'decimal', precision: 4, scale: 2, default: 0 })
-  youtubeStabilityScore: number;      // 0-10: насколько стабильны просмотры
+  youtubeStabilityScore: number;
 
   @Column({ type: 'timestamp', nullable: true })
-  youtubeLastSyncAt: Date;            // когда последний раз синхронизировали с API
+  youtubeLastSyncAt: Date;
 
   // AI Scores
   @Column({ type: 'decimal', precision: 4, scale: 2, nullable: true })

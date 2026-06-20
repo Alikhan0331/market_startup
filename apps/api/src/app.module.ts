@@ -7,9 +7,9 @@ import { ProfilesModule } from './profiles/profiles.module';
 import { SearchModule } from './search/search.module';
 import { DealsModule } from './deals/deals.module';
 import { ScoringModule } from './scoring/scoring.module';
-import { YoutubeModule } from './youtube/youtube.module'; // ←
+import { YoutubeModule } from './youtube/youtube.module';
+import { MatchingModule } from './matching/matching.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-
 
 @Module({
   imports: [
@@ -35,6 +35,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     DealsModule,
     YoutubeModule,
     ScoringModule,
+    MatchingModule,
   ],
   providers: [
     {

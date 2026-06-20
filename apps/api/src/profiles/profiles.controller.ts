@@ -47,15 +47,15 @@ export class ProfilesController {
   @Roles(UserRole.BRAND)
   @ApiOperation({ summary: 'Get own brand profile' })
   getMyBrand(@CurrentUser() user: User) {
-    return this.profilesService.getMyBrandProfile(user.id);
+    return this.profilesService.getMyBrandProfileOrNull(user.id);
   }
 
   @Put('brands/me')
   @UseGuards(RolesGuard)
   @Roles(UserRole.BRAND)
-  @ApiOperation({ summary: 'Update own brand profile' })
+  @ApiOperation({ summary: 'Upsert own brand profile' })
   updateMyBrand(@CurrentUser() user: User, @Body() dto: UpdateBrandDto) {
-    return this.profilesService.updateBrandProfile(user.id, dto);
+    return this.profilesService.upsertBrandProfile(user.id, dto);
   }
 
   @Get('brands/:id')
@@ -80,15 +80,15 @@ export class ProfilesController {
   @Roles(UserRole.INFLUENCER)
   @ApiOperation({ summary: 'Get own influencer profile' })
   getMyInfluencer(@CurrentUser() user: User) {
-    return this.profilesService.getMyInfluencerProfile(user.id);
+    return this.profilesService.getMyInfluencerProfileOrNull(user.id);
   }
 
   @Put('influencers/me')
   @UseGuards(RolesGuard)
   @Roles(UserRole.INFLUENCER)
-  @ApiOperation({ summary: 'Update own influencer profile' })
+  @ApiOperation({ summary: 'Upsert own influencer profile' })
   updateMyInfluencer(@CurrentUser() user: User, @Body() dto: UpdateInfluencerDto) {
-    return this.profilesService.updateInfluencerProfile(user.id, dto);
+    return this.profilesService.upsertInfluencerProfile(user.id, dto);
   }
 
   @Patch('influencers/me/youtube')
