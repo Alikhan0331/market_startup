@@ -27,7 +27,7 @@ export class BrandProfile {
   @Column({ nullable: true })
   website: string;
 
-  @Column()
+  @Column({ nullable: true })
   industry: string;
 
   @Column({ type: 'text', nullable: true })
@@ -36,7 +36,7 @@ export class BrandProfile {
   @Column({ nullable: true })
   logoUrl: string;
 
-  @Column()
+  @Column({ nullable: true })
   country: string;
 
   @Column({ nullable: true })

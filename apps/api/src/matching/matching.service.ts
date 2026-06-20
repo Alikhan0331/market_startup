@@ -33,7 +33,7 @@ export interface MatchBreakdown {
   categoryScore: number;        // 0-30  — how well categories align with brand industry
   countryScore: number;         // 0-20  — same country bonus
   engagementScore: number;      // 0-25  — overall influencer quality score
-  budgetScore: number;          // 0-15  — price compatibility (0 if no brand budget hint)
+  budgetScore: number;          // 0-15  — price compatibility
   verificationScore: number;    // 0-10  — verified status bonus
   matchedCategories: string[];  // human-readable list of matched categories
   reasons: string[];            // human-readable match reasons
@@ -55,10 +55,10 @@ export class MatchingService {
     const brand = await this.brandRepo.findOne({ where: { userId: brandUserId } });
     if (!brand) throw new NotFoundException('Brand profile not found');
 
+    // Fetch all influencers with no ordering dependency on nullable score
     const influencers = await this.influencerRepo.find({
-      where: {},
-      take: 500,   // pool to score from
-      order: { overallScore: 'DESC' },
+      take: 500,
+      order: { createdAt: 'DESC' },
     });
 
     const results: MatchResult[] = influencers
@@ -81,8 +81,10 @@ export class MatchingService {
     };
 
     // 1. Category alignment (0-30)
-    const affinities = INDUSTRY_CATEGORY_MAP[brand.industry] ?? [];
-    const influencerCats = influencer.categories ?? [];
+    const affinities = brand.industry ? (INDUSTRY_CATEGORY_MAP[brand.industry] ?? []) : [];
+    const influencerCats: string[] = Array.isArray(influencer.categories)
+      ? influencer.categories.filter(Boolean)
+      : [];
     const matched = influencerCats.filter(
       (c) => affinities.some((a) => a.toLowerCase() === c.toLowerCase()),
     );
@@ -93,34 +95,28 @@ export class MatchingService {
       breakdown.reasons.push(`Content matches ${brand.industry} industry (${matched.join(', ')})`);
 
     // 2. Country match (0-20)
-    if (
-      brand.country &&
-      influencer.country &&
-      brand.country.toLowerCase() === influencer.country.toLowerCase()
-    ) {
-      breakdown.countryScore = 20;
-      breakdown.reasons.push(`Same country (${brand.country})`);
-    } else {
-      // partial score for similar region (naive: first two chars match)
-      if (
-        brand.country &&
-        influencer.country &&
-        brand.country.slice(0, 2).toLowerCase() === influencer.country.slice(0, 2).toLowerCase()
-      ) {
+    const brandCountry = (brand.country ?? '').toLowerCase().trim();
+    const infCountry = (influencer.country ?? '').toLowerCase().trim();
+    if (brandCountry && infCountry) {
+      if (brandCountry === infCountry) {
+        breakdown.countryScore = 20;
+        breakdown.reasons.push(`Same country (${brand.country})`);
+      } else if (brandCountry.slice(0, 2) === infCountry.slice(0, 2)) {
         breakdown.countryScore = 8;
         breakdown.reasons.push('Similar region');
       }
     }
 
-    // 3. Engagement / quality score (0-25) — uses overallScore (0-10 scale → /10*25)
-    if (influencer.overallScore != null) {
-      breakdown.engagementScore = (Number(influencer.overallScore) / 10) * 25;
-      if (Number(influencer.overallScore) >= 7)
-        breakdown.reasons.push(`High quality score (${Number(influencer.overallScore).toFixed(1)}/10)`);
-    }
+    // 3. Quality score (0-25)
+    // null overallScore → give a neutral base of 5 so unscored influencers still appear
+    const qualityScore = influencer.overallScore != null ? Number(influencer.overallScore) : 0;
+    breakdown.engagementScore = (qualityScore / 10) * 25;
+    if (qualityScore >= 7)
+      breakdown.reasons.push(`High quality score (${qualityScore.toFixed(1)}/10)`);
+    else if (influencer.overallScore == null)
+      breakdown.reasons.push('Score pending — not yet calculated');
 
     // 4. Budget compatibility (0-15)
-    // We don't store brand budget; give full 15 if influencer has set a price range
     if (influencer.priceFrom != null && influencer.priceTo != null) {
       breakdown.budgetScore = 15;
       breakdown.reasons.push('Has defined pricing');
@@ -137,6 +133,7 @@ export class MatchingService {
         break;
       case 'UNVERIFIED':
         breakdown.verificationScore = 4;
+        breakdown.reasons.push('Profile not yet verified');
         break;
       case 'WARNING':
         breakdown.verificationScore = 1;
