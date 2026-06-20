@@ -13,6 +13,7 @@ import { buttonVariants } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { InfluencerProfile, BrandProfile } from '../../../types/api';
+import { YoutubeConnector } from '../../../components/shared/YoutubeConnector';
 
 const influencerSchema = z.object({
   displayName: z.string().min(1),
@@ -212,7 +213,15 @@ export default function ProfilePage() {
         {isInfluencer ? 'Influencer Profile' : 'Brand Profile'}
       </h1>
       {isInfluencer ? (
-        <InfluencerProfileForm profile={influencerProfile} token={token} onSave={invalidate} />
+        <>
+          <InfluencerProfileForm profile={influencerProfile} token={token} onSave={invalidate} />
+          <YoutubeConnector
+            token={token}
+            currentHandle={influencerProfile?.youtubeHandle}
+            lastSyncAt={influencerProfile?.youtubeLastSyncAt as any}
+            onSaved={invalidate}
+          />
+        </>
       ) : (
         <BrandProfileForm profile={brandProfile} token={token} onSave={invalidate} />
       )}

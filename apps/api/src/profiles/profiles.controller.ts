@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Body,
   Param,
   UseGuards,
@@ -18,6 +19,7 @@ import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 import { CreateInfluencerDto } from './dto/create-influencer.dto';
 import { UpdateInfluencerDto } from './dto/update-influencer.dto';
+import { UpdateYoutubeStatsDto } from './dto/update-youtube-stats.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -87,6 +89,14 @@ export class ProfilesController {
   @ApiOperation({ summary: 'Update own influencer profile' })
   updateMyInfluencer(@CurrentUser() user: User, @Body() dto: UpdateInfluencerDto) {
     return this.profilesService.updateInfluencerProfile(user.id, dto);
+  }
+
+  @Patch('influencers/me/youtube')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.INFLUENCER)
+  @ApiOperation({ summary: 'Save YouTube channel stats to own profile' })
+  updateMyYoutubeStats(@CurrentUser() user: User, @Body() dto: UpdateYoutubeStatsDto) {
+    return this.profilesService.updateMyYoutubeStats(user.id, dto);
   }
 
   @Get('influencers/:id')

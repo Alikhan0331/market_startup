@@ -41,7 +41,12 @@
       "PowerShell($env:PGPASSWORD = \"postgres\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -h 127.0.0.1 -d influencer_marketplace -c \"SELECT id, email, role, `\"isVerified`\", `\"createdAt`\" FROM users ORDER BY `\"createdAt`\" DESC LIMIT 10;\")",
       "PowerShell($env:PGPASSWORD = \"postgres\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -h 127.0.0.1 -d influencer_marketplace -c 'SELECT id, email, role, \"isVerified\", \"createdAt\" FROM users ORDER BY \"createdAt\" DESC LIMIT 10;')",
       "PowerShell($env:PGPASSWORD = \"postgres\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -h 127.0.0.1 -d influencer_marketplace -c \"SELECT id, email, role FROM users ORDER BY \"\"createdAt\"\" DESC LIMIT 10;\")",
-      "PowerShell(netstat -ano)"
+      "PowerShell(netstat -ano)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\" -X POST http://localhost:3001/youtube/analyze -H \"Content-Type: application/json\" -d '{\"input\":\"@MrBeast\"}')",
+      "Bash(curl -s \"https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle=MrBeast&key=AIzaSyBo5JYbGyvgjNvzgDryM7AXULqSYvUVc_c\")",
+      "Bash(curl -s -X POST http://localhost:3001/youtube/analyze -H \"Content-Type: application/json\" -d '{\"input\":\"MrBeast\"}')",
+      "Bash(node -e \"const {google} = require\\('googleapis'\\); const yt = google.youtube\\({version:'v3', auth:'AIzaSyBo5JYbGyvgjNvzgDryM7AXULqSYvUVc_c'}\\); yt.channels.list\\({part:['snippet'], forHandle:'MrBeast'}\\).then\\(r => console.log\\(JSON.stringify\\(r.data.items?.[0]?.snippet?.title\\)\\)\\).catch\\(e => console.error\\('ERR:', e.message\\)\\)\")",
+      "Bash(node -e ' *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\user\\Desktop\\desk\\projects\\startup\\apps\\web\\app\\(dashboard)\\deals",

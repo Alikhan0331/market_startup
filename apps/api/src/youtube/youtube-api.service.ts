@@ -8,10 +8,10 @@ export class YoutubeApiService {
   private readonly logger = new Logger(YoutubeApiService.name);
 
   constructor(private config: ConfigService) {
-    this.youtube = google.youtube({
-      version: 'v3',
-      auth: this.config.get<string>('YOUTUBE_API_KEY'),
-    });
+    const key = this.config.get<string>('YOUTUBE_API_KEY');
+    if (!key) this.logger.error('YOUTUBE_API_KEY is not set in .env!');
+    else this.logger.log(`YOUTUBE_API_KEY loaded (${key.slice(0, 8)}...)`);
+    this.youtube = google.youtube({ version: 'v3', auth: key });
   }
 
   // Получить канал по @handle или по channelId
@@ -31,8 +31,8 @@ export class YoutubeApiService {
 
       const res = await this.youtube.channels.list(params);
       return res.data.items?.[0] ?? null;
-    } catch (e) {
-      this.logger.error('getChannel error', e);
+    } catch (e: any) {
+      this.logger.error(`getChannel error ${e?.response?.status}: ${e?.response?.data?.error?.message ?? e?.message}`);
       return null;
     }
   }

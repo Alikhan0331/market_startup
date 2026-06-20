@@ -11,6 +11,7 @@ import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 import { CreateInfluencerDto } from './dto/create-influencer.dto';
 import { UpdateInfluencerDto } from './dto/update-influencer.dto';
+import { UpdateYoutubeStatsDto } from './dto/update-youtube-stats.dto';
 import { ScoringService } from '../scoring/scoring.service';
 
 @Injectable()
@@ -83,6 +84,11 @@ export class ProfilesService {
     const profile = await this.influencerRepo.findOne({ where: { id } });
     if (!profile) throw new NotFoundException('Influencer profile not found');
     return profile;
+  }
+
+  async updateMyYoutubeStats(userId: string, dto: UpdateYoutubeStatsDto): Promise<InfluencerProfile> {
+    const profile = await this.getMyInfluencerProfile(userId);
+    return this.updateYoutubeStats(profile.id, dto);
   }
 
   async updateYoutubeStats(
