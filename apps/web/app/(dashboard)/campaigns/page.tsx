@@ -93,7 +93,7 @@ function CampaignCard({ campaign, token, onDeleted }: { campaign: Campaign; toke
             Activate
           </Button>
         )}
-        {(campaign.status === 'DRAFT') && (
+        {campaign.status === 'DRAFT' && (
           <Button
             size="sm"
             variant="outline"

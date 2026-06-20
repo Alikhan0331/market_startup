@@ -49,7 +49,8 @@
       "Bash(node -e ' *)",
       "Bash(git fetch *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git pull *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\user\\Desktop\\desk\\projects\\startup\\apps\\web\\app\\(dashboard)\\deals",

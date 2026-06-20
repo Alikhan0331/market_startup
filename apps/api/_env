@@ -1,0 +1,11 @@
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=zamanbek
+DB_PASSWORD=Zama123
+DB_NAME=influencer_marketplace
+YOUTUBE_API_KEY=AIzaSyBo5JYbGyvgjNvzgDryM7AXULqSYvUVc_c
+JWT_SECRET=dev-jwt-secret
+JWT_REFRESH_SECRET=dev-refresh-secret
+NODE_ENV=development
+NEXTAUTH_SECRET=2005abcf1b4d5b38026ee3fde678c0e0dafff66ec66b784a6c9163bacc1f6d34
+NEXTAUTH_URL=http://localhost:3000/

@@ -50,24 +50,24 @@ export class DealsController {
 
   @Patch(':id/accept')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.INFLUENCER)
-  @ApiOperation({ summary: 'Influencer accepts deal' })
+  @Roles(UserRole.BRAND, UserRole.INFLUENCER)
+  @ApiOperation({ summary: 'Accept deal or counter offer' })
   accept(@Param('id') id: string, @CurrentUser() user: User) {
     return this.dealsService.acceptDeal(id, user);
   }
 
   @Patch(':id/reject')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.INFLUENCER)
-  @ApiOperation({ summary: 'Influencer rejects deal' })
+  @Roles(UserRole.BRAND, UserRole.INFLUENCER)
+  @ApiOperation({ summary: 'Reject deal or counter offer' })
   reject(@Param('id') id: string, @CurrentUser() user: User) {
     return this.dealsService.rejectDeal(id, user);
   }
 
   @Patch(':id/counter')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.INFLUENCER)
-  @ApiOperation({ summary: 'Influencer counters with a different budget' })
+  @Roles(UserRole.BRAND, UserRole.INFLUENCER)
+  @ApiOperation({ summary: 'Counter with a different budget' })
   counter(
     @Param('id') id: string,
     @CurrentUser() user: User,

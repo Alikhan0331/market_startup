@@ -68,11 +68,17 @@ export default function DealDetailPage() {
   if (!deal) return <p className="text-zinc-400">Deal not found</p>;
 
   const canAcceptReject =
-    role === 'INFLUENCER' && (deal.status === 'PENDING' || deal.status === 'COUNTERED');
-  const canCounter = role === 'INFLUENCER' && deal.status === 'PENDING';
+    (role === 'INFLUENCER' && (deal.status === 'PENDING' || deal.status === 'COUNTERED')) ||
+    (role === 'BRAND' && deal.status === 'COUNTERED');
+  const canCounter =
+    (role === 'INFLUENCER' && deal.status === 'PENDING') ||
+    (role === 'BRAND' && deal.status === 'COUNTERED');
   const canComplete = role === 'BRAND' && (deal.status === 'ACCEPTED' || deal.status === 'ACTIVE');
   const canCancel =
-    deal.status === 'PENDING' || deal.status === 'ACTIVE' || deal.status === 'ACCEPTED';
+    deal.status === 'PENDING' ||
+    deal.status === 'COUNTERED' ||
+    deal.status === 'ACTIVE' ||
+    deal.status === 'ACCEPTED';
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -159,7 +165,9 @@ export default function DealDetailPage() {
 
       {canCounter && (
         <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-3">
-          <p className="text-sm font-medium text-zinc-300">Send counter offer</p>
+          <p className="text-sm font-medium text-zinc-300">
+            {role === 'BRAND' ? 'Respond with counter offer' : 'Send counter offer'}
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-zinc-400">Budget (USD)</Label>

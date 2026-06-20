@@ -54,24 +54,36 @@ export class DealsService {
 
   async acceptDeal(id: string, user: User): Promise<Deal> {
     const deal = await this.getDeal(id, user);
-    this.assertInfluencer(user);
-    this.assertStatus(deal, [DealStatus.PENDING, DealStatus.COUNTERED]);
+    if (user.role === UserRole.BRAND) {
+      this.assertStatus(deal, [DealStatus.COUNTERED]);
+    } else {
+      this.assertStatus(deal, [DealStatus.PENDING, DealStatus.COUNTERED]);
+    }
+    if (deal.status === DealStatus.COUNTERED && deal.counterBudget) {
+      deal.budget = deal.counterBudget;
+    }
     deal.status = DealStatus.ACCEPTED;
     return this.dealsRepo.save(deal);
   }
 
   async rejectDeal(id: string, user: User): Promise<Deal> {
     const deal = await this.getDeal(id, user);
-    this.assertInfluencer(user);
-    this.assertStatus(deal, [DealStatus.PENDING, DealStatus.COUNTERED]);
+    if (user.role === UserRole.BRAND) {
+      this.assertStatus(deal, [DealStatus.COUNTERED]);
+    } else {
+      this.assertStatus(deal, [DealStatus.PENDING, DealStatus.COUNTERED]);
+    }
     deal.status = DealStatus.REJECTED;
     return this.dealsRepo.save(deal);
   }
 
   async counterDeal(id: string, user: User, dto: CounterDealDto): Promise<Deal> {
     const deal = await this.getDeal(id, user);
-    this.assertInfluencer(user);
-    this.assertStatus(deal, [DealStatus.PENDING]);
+    if (user.role === UserRole.BRAND) {
+      this.assertStatus(deal, [DealStatus.COUNTERED]);
+    } else {
+      this.assertStatus(deal, [DealStatus.PENDING]);
+    }
     deal.status = DealStatus.COUNTERED;
     deal.counterBudget = dto.counterBudget;
     deal.counterNote = dto.counterNote ?? '';
@@ -88,7 +100,12 @@ export class DealsService {
 
   async cancelDeal(id: string, user: User): Promise<Deal> {
     const deal = await this.getDeal(id, user);
-    this.assertStatus(deal, [DealStatus.PENDING, DealStatus.ACTIVE, DealStatus.ACCEPTED]);
+    this.assertStatus(deal, [
+      DealStatus.PENDING,
+      DealStatus.COUNTERED,
+      DealStatus.ACTIVE,
+      DealStatus.ACCEPTED,
+    ]);
     deal.status = DealStatus.CANCELLED;
     return this.dealsRepo.save(deal);
   }
