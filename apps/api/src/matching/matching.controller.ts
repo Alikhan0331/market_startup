@@ -1,9 +1,19 @@
-import { Controller, Get, Query, ParseIntPipe, DefaultValuePipe, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { MatchingService } from './matching.service';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('matching')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('matching')
 export class MatchingController {
   constructor(private readonly matchingService: MatchingService) {}

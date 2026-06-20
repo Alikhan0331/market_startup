@@ -19,6 +19,7 @@ const influencerSchema = z.object({
   bio: z.string().optional(),
   country: z.string().optional(),
   city: z.string().optional(),
+  categories: z.string().optional(), // comma-separated, converted to array before submit
   instagramHandle: z.string().optional(),
   instagramFollowers: z.number().min(0).optional(),
   instagramER: z.number().min(0).max(100).optional(),
@@ -45,11 +46,12 @@ const brandSchema = z.object({
 type InfluencerForm = z.infer<typeof influencerSchema>;
 type BrandForm = z.infer<typeof brandSchema>;
 
-function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
+function Field({ label, children, error, hint }: { label: string; children: React.ReactNode; error?: string; hint?: string }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-zinc-300 text-sm">{label}</Label>
       {children}
+      {hint && <p className="text-xs text-zinc-500">{hint}</p>}
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );
@@ -69,6 +71,9 @@ function InfluencerProfileForm({ profile, token, onSave }: { profile?: Influence
       bio: profile.bio ?? '',
       country: profile.country ?? '',
       city: profile.city ?? '',
+      categories: Array.isArray(profile.categories)
+        ? profile.categories.filter(Boolean).join(', ')
+        : '',
       instagramHandle: profile.instagramHandle ?? '',
       instagramFollowers: profile.instagramFollowers ?? undefined,
       instagramER: profile.instagramER ?? undefined,
@@ -85,7 +90,13 @@ function InfluencerProfileForm({ profile, token, onSave }: { profile?: Influence
   }, [profile, reset]);
 
   const mutation = useMutation({
-    mutationFn: (data: InfluencerForm) => influencersApi.updateMe(data as any, token),
+    mutationFn: (data: InfluencerForm) => {
+      // Convert comma-separated categories string to array
+      const categories = data.categories
+        ? data.categories.split(',').map((c) => c.trim()).filter(Boolean)
+        : [];
+      return influencersApi.updateMe({ ...data, categories } as any, token);
+    },
     onSuccess: () => { toast.success('Profile saved'); onSave(); },
     onError: (err: any) => toast.error(err?.message ?? 'Save failed'),
   });
@@ -109,6 +120,16 @@ function InfluencerProfileForm({ profile, token, onSave }: { profile?: Influence
           <Input type="number" className={inputClass} {...register('priceTo', { setValueAs: (v) => (v === '' || v == null ? undefined : Number(v)) })} />
         </Field>
       </div>
+      <Field
+        label="Categories"
+        hint="Comma-separated, e.g: Fashion, Lifestyle, Beauty — used for matching"
+      >
+        <Input
+          className={inputClass}
+          placeholder="Fashion, Lifestyle, Beauty"
+          {...register('categories')}
+        />
+      </Field>
       <Field label="Bio">
         <textarea rows={3} className={`w-full rounded-md border px-3 py-2 text-sm resize-none ${inputClass} focus:outline-none focus:ring-2 focus:ring-[#4F6EF7]`} {...register('bio')} />
       </Field>
@@ -172,8 +193,8 @@ function BrandProfileForm({ profile, token, onSave }: { profile?: BrandProfile |
         <Field label="Company name *" error={errors.companyName?.message}>
           <Input className={inputClass} {...register('companyName')} />
         </Field>
-        <Field label="Industry">
-          <Input className={inputClass} placeholder="e.g. Fashion, Technology" {...register('industry')} />
+        <Field label="Industry" hint="e.g. Fashion, Technology, Food — used for matching">
+          <Input className={inputClass} placeholder="Fashion" {...register('industry')} />
         </Field>
         <Field label="Website" error={errors.website?.message}>
           <Input className={inputClass} placeholder="https://" {...register('website')} />
