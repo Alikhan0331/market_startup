@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Briefcase, User, BarChart2, Sparkles } from 'lucide-react';
+import { Search, Briefcase, User, BarChart2, Sparkles, Megaphone } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
 const NAV = [
-  { href: '/search',      label: 'Discover',     icon: Search },
-  { href: '/recommended', label: 'Recommended',  icon: Sparkles },
-  { href: '/deals',       label: 'Deals',        icon: Briefcase },
-  { href: '/profile',     label: 'Profile',      icon: User },
+    { href: '/search',      label: 'Discover',     icon: Search },
+    { href: '/recommended', label: 'Recommended',  icon: Sparkles },
+    { href: '/deals',       label: 'Deals',        icon: Briefcase },
+    { href: '/campaigns',   label: 'Campaigns',    icon: Megaphone }, // ← новое
+    { href: '/profile',     label: 'Profile',      icon: User },
 ];
 
 export function Sidebar() {
