@@ -4,12 +4,13 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { MatchingService } from './matching.service';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../common/entities/user.entity';
 
 @ApiTags('matching')
 @ApiBearerAuth()
@@ -22,9 +23,9 @@ export class MatchingController {
   @ApiOperation({ summary: 'Get recommended influencers for the authenticated brand' })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   getRecommended(
-    @Request() req: any,
+    @CurrentUser() user: User,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
-    return this.matchingService.getRecommended(req.user.sub, limit);
+    return this.matchingService.getRecommended(user.id, limit);
   }
 }
