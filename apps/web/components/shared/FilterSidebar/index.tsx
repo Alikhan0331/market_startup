@@ -34,8 +34,11 @@ const PLATFORMS = [
   { value: 'youtube', label: 'YouTube' },
 ];
 
+const MAX_FOLLOWERS = 1_000_000;
+const MAX_PRICE = 10_000;
+
 function formatFollowers(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000_000) return '1M+';
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return String(n);
 }
@@ -50,6 +53,10 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
   function update(partial: Partial<Filters>) {
     onChange({ ...filters, ...partial });
   }
+
+  // 0 means "no cap" — display as max on the slider
+  const sliderMaxFollowers = filters.maxFollowers === 0 ? MAX_FOLLOWERS : filters.maxFollowers;
+  const sliderMaxPrice = filters.maxPrice === 0 ? MAX_PRICE : filters.maxPrice;
 
   return (
     <aside className="w-56 shrink-0 space-y-5">
@@ -126,16 +133,19 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
       {/* ── Аудитория (подписчики) ───────────────────────────────────────── */}
       <div className="space-y-3">
         <Label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
-          Audience: {formatFollowers(filters.minFollowers)} – {formatFollowers(filters.maxFollowers)}
+          Audience: {formatFollowers(filters.minFollowers)} – {filters.maxFollowers === 0 ? 'Any' : formatFollowers(filters.maxFollowers)}
         </Label>
         <Slider
           min={0}
-          max={1_000_000}
+          max={MAX_FOLLOWERS}
           step={10_000}
-          value={[filters.minFollowers, filters.maxFollowers]}
+          value={[filters.minFollowers, sliderMaxFollowers]}
           onValueChange={(val) => {
             const arr = Array.isArray(val) ? val : [val];
-            update({ minFollowers: arr[0] ?? 0, maxFollowers: arr[1] ?? 1_000_000 });
+            const min = arr[0] ?? 0;
+            const max = arr[1] ?? MAX_FOLLOWERS;
+            // treat full-max as "no cap" (0)
+            update({ minFollowers: min, maxFollowers: max === MAX_FOLLOWERS ? 0 : max });
           }}
           className="[&>span]:bg-[#4F6EF7]"
         />
@@ -154,13 +164,13 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
         </Label>
         <Slider
           min={0}
-          max={10_000}
+          max={MAX_PRICE}
           step={100}
-          value={[filters.minPrice, filters.maxPrice === 0 ? 10_000 : filters.maxPrice]}
+          value={[filters.minPrice, sliderMaxPrice]}
           onValueChange={(val) => {
             const arr = Array.isArray(val) ? val : [val];
-            const max = arr[1] ?? 10_000;
-            update({ minPrice: arr[0] ?? 0, maxPrice: max === 10_000 ? 0 : max });
+            const max = arr[1] ?? MAX_PRICE;
+            update({ minPrice: arr[0] ?? 0, maxPrice: max === MAX_PRICE ? 0 : max });
           }}
           className="[&>span]:bg-emerald-500"
         />
