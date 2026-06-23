@@ -2,6 +2,26 @@ export type UserRole = 'BRAND' | 'INFLUENCER' | 'ADMIN' | 'MODERATOR';
 
 export type VerificationStatus = 'UNVERIFIED' | 'VERIFIED' | 'WARNING' | 'SUSPICIOUS';
 
+export type AvailabilityStatus =
+  | 'ACTIVELY_LOOKING'
+  | 'CONSIDERING'
+  | 'NOT_LOOKING'
+  | 'BUSY';
+
+export const AVAILABILITY_LABELS: Record<AvailabilityStatus, string> = {
+  ACTIVELY_LOOKING: 'Actively looking for deals',
+  CONSIDERING: "I'm considering offers",
+  NOT_LOOKING: 'I am not looking for deals',
+  BUSY: 'I am busy',
+};
+
+export const AVAILABILITY_COLOR: Record<AvailabilityStatus, string> = {
+  ACTIVELY_LOOKING: 'text-emerald-400 bg-emerald-400/10',
+  CONSIDERING: 'text-amber-400 bg-amber-400/10',
+  NOT_LOOKING: 'text-zinc-400 bg-zinc-400/10',
+  BUSY: 'text-red-400 bg-red-400/10',
+};
+
 export type DealStatus =
   | 'PENDING'
   | 'ACCEPTED'
@@ -52,6 +72,7 @@ export interface InfluencerProfile {
   languages?: string[];
   priceFrom?: number;
   priceTo?: number;
+  availabilityStatus: AvailabilityStatus;
   instagramHandle?: string;
   instagramFollowers: number;
   instagramER: number;
@@ -62,6 +83,7 @@ export interface InfluencerProfile {
   youtubeHandle?: string;
   youtubeSubscribers: number;
   youtubeAvgViews: number;
+  youtubeLastSyncAt?: string;
   reachScore?: number;
   engagementScore?: number;
   audienceScore?: number;
