@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BrandProfile } from './entities/brand-profile.entity';
-import { InfluencerProfile } from './entities/influencer-profile.entity';
+import { InfluencerProfile, AvailabilityStatus } from './entities/influencer-profile.entity';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 import { CreateInfluencerDto } from './dto/create-influencer.dto';
@@ -33,7 +33,6 @@ export class ProfilesService {
     return this.brandRepo.save(profile);
   }
 
-  /** Returns null instead of throwing when no profile exists yet */
   async getMyBrandProfileOrNull(userId: string): Promise<BrandProfile | null> {
     return this.brandRepo.findOne({ where: { userId } });
   }
@@ -44,7 +43,6 @@ export class ProfilesService {
     return profile;
   }
 
-  /** Create on first save, update afterwards */
   async upsertBrandProfile(userId: string, dto: UpdateBrandDto): Promise<BrandProfile> {
     let profile = await this.brandRepo.findOne({ where: { userId } });
     if (!profile) {
@@ -78,7 +76,6 @@ export class ProfilesService {
     return this.influencerRepo.save(profile);
   }
 
-  /** Returns null instead of throwing when no profile exists yet */
   async getMyInfluencerProfileOrNull(userId: string): Promise<InfluencerProfile | null> {
     return this.influencerRepo.findOne({ where: { userId } });
   }
@@ -89,7 +86,6 @@ export class ProfilesService {
     return profile;
   }
 
-  /** Create on first save, update afterwards */
   async upsertInfluencerProfile(
     userId: string,
     dto: UpdateInfluencerDto,
@@ -113,6 +109,28 @@ export class ProfilesService {
     const saved = await this.influencerRepo.save(profile);
     this.scoringService.calculateScore(saved.id).catch(() => {});
     return saved;
+  }
+
+  async updateAvailabilityStatus(
+    userId: string,
+    status: AvailabilityStatus,
+  ): Promise<InfluencerProfile> {
+    const profile = await this.getMyInfluencerProfile(userId);
+    profile.availabilityStatus = status;
+    return this.influencerRepo.save(profile);
+  }
+
+  /** Called after a deal is accepted — auto-sets BUSY if influencer was actively looking */
+  async suggestBusyStatus(influencerProfileId: string): Promise<void> {
+    const profile = await this.influencerRepo.findOne({ where: { id: influencerProfileId } });
+    if (!profile) return;
+    if (
+      profile.availabilityStatus === AvailabilityStatus.ACTIVELY_LOOKING ||
+      profile.availabilityStatus === AvailabilityStatus.CONSIDERING
+    ) {
+      profile.availabilityStatus = AvailabilityStatus.BUSY;
+      await this.influencerRepo.save(profile);
+    }
   }
 
   async getInfluencerById(id: string): Promise<InfluencerProfile> {
