@@ -5,9 +5,11 @@ import {
   IsArray,
   IsNumber,
   IsInt,
+  IsEnum,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { AvailabilityStatus } from '../entities/influencer-profile.entity';
 
 export class CreateInfluencerDto {
   @ApiProperty()
@@ -54,6 +56,11 @@ export class CreateInfluencerDto {
   @Min(0)
   @Type(() => Number)
   priceTo?: number;
+
+  @ApiPropertyOptional({ enum: AvailabilityStatus })
+  @IsOptional()
+  @IsEnum(AvailabilityStatus)
+  availabilityStatus?: AvailabilityStatus;
 
   @ApiPropertyOptional()
   @IsOptional()
