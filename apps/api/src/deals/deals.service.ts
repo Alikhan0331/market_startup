@@ -30,7 +30,6 @@ export class DealsService {
   async createDeal(user: User, dto: CreateDealDto): Promise<Deal> {
     const brandProfile = await this.profilesService.getMyBrandProfile(user.id);
 
-    // Floor price enforcement
     const pricing = await this.pricingService.calculatePricing(dto.influencerId);
     if (pricing.hasEnoughData && dto.budget < pricing.floor) {
       throw new BadRequestException(
@@ -79,7 +78,14 @@ export class DealsService {
       deal.budget = deal.counterBudget;
     }
     deal.status = DealStatus.ACCEPTED;
-    return this.dealsRepo.save(deal);
+    const saved = await this.dealsRepo.save(deal);
+
+    // Suggest busy status to the influencer after accepting a deal
+    if (user.role === UserRole.INFLUENCER) {
+      this.profilesService.suggestBusyStatus(deal.influencerId).catch(() => {});
+    }
+
+    return saved;
   }
 
   async rejectDeal(id: string, user: User): Promise<Deal> {
@@ -119,7 +125,6 @@ export class DealsService {
     if (dto?.revisionCount !== undefined) deal.revisionCount = dto.revisionCount;
     const saved = await this.dealsRepo.save(deal);
 
-    // Update partnership score for this brand-influencer pair
     await this.partnershipService.onDealCompleted(deal.brandId, deal.influencerId);
 
     const now = new Date();
@@ -146,7 +151,6 @@ export class DealsService {
     deal.status = DealStatus.CANCELLED;
     const saved = await this.dealsRepo.save(deal);
 
-    // Only log when deal was already accepted/active (influencer had committed)
     if (previousStatus === DealStatus.ACTIVE || previousStatus === DealStatus.ACCEPTED) {
       const eventType =
         user.role === UserRole.INFLUENCER
