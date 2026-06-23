@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { InfluencerProfile } from '../profiles/entities/influencer-profile.entity';
+import { InfluencerProfile, AvailabilityStatus } from '../profiles/entities/influencer-profile.entity';
 import { SearchInfluencersDto, Platform, SortBy } from './dto/search-influencers.dto';
+
+const EXCLUDED_STATUSES: AvailabilityStatus[] = [
+  AvailabilityStatus.BUSY,
+  AvailabilityStatus.NOT_LOOKING,
+];
 
 @Injectable()
 export class SearchService {
@@ -30,7 +35,9 @@ export class SearchService {
 
     const qb = this.influencerRepo
       .createQueryBuilder('ip')
-      .leftJoinAndSelect('ip.user', 'user');
+      .leftJoinAndSelect('ip.user', 'user')
+      // Exclude influencers who are not available
+      .where('ip.availabilityStatus NOT IN (:...excluded)', { excluded: EXCLUDED_STATUSES });
 
     if (country) qb.andWhere('ip.country = :country', { country });
     if (city) qb.andWhere('ip.city ILIKE :city', { city: `%${city}%` });
@@ -55,7 +62,6 @@ export class SearchService {
       if (maxFollowers !== undefined)
         qb.andWhere('ip.youtubeSubscribers <= :maxFollowers', { maxFollowers });
     } else {
-      // no platform filter — apply across max of all platforms
       if (minFollowers !== undefined)
         qb.andWhere(
           `GREATEST(ip.instagramFollowers, ip.tiktokFollowers, ip.youtubeSubscribers) >= :minFollowers`,

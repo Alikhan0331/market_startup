@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { InfluencerProfile } from '../profiles/entities/influencer-profile.entity';
+import { InfluencerProfile, AvailabilityStatus } from '../profiles/entities/influencer-profile.entity';
 import { BrandProfile } from '../profiles/entities/brand-profile.entity';
 import { PartnershipService } from '../partnership/partnership.service';
 import { PartnershipTier } from '../partnership/entities/partnership-score.entity';
@@ -62,6 +62,11 @@ export interface MatchBreakdown {
   reasons: string[];
 }
 
+const EXCLUDED_STATUSES: AvailabilityStatus[] = [
+  AvailabilityStatus.BUSY,
+  AvailabilityStatus.NOT_LOOKING,
+];
+
 @Injectable()
 export class MatchingService {
   constructor(
@@ -76,10 +81,12 @@ export class MatchingService {
     const brand = await this.brandRepo.findOne({ where: { userId: brandUserId } });
     if (!brand) throw new NotFoundException('Brand profile not found');
 
-    const influencers = await this.influencerRepo.find({
-      take: 500,
-      order: { createdAt: 'DESC' },
-    });
+    const influencers = await this.influencerRepo
+      .createQueryBuilder('ip')
+      .where('ip.availabilityStatus NOT IN (:...excluded)', { excluded: EXCLUDED_STATUSES })
+      .orderBy('ip.createdAt', 'DESC')
+      .take(500)
+      .getMany();
 
     // Load all partnerships for this brand in one query for efficient lookup
     const partnerships = await this.partnershipService.getAllPartnershipsForBrand(brand.id);
@@ -108,31 +115,24 @@ export class MatchingService {
     };
 
     // ── 1. Category alignment (0–30) ──────────────────────────────────────────
-    // Resolve brand industry → affinity list (e.g. "Education" → ["Education","Technology","Science","Business"])
     const affinities = resolveAffinities(brand.industry);
 
-    // Parse influencer categories from simple-array, stripping any empty strings
-    // that TypeORM produces when the column value is the empty-string default.
     const influencerCats: string[] = Array.isArray(influencer.categories)
       ? (influencer.categories as string[]).map((c) => c.trim()).filter(Boolean)
       : [];
 
-    // matched = influencer's own categories that appear in the brand affinity list
     const matched = influencerCats.filter((c) =>
       affinities.some((a) => a.toLowerCase() === c.toLowerCase()),
     );
     breakdown.matchedCategories = matched;
 
     if (affinities.length > 0) {
-      // Score = how many of brand's affinities the influencer covers.
-      // 3 unique hits → full 30 pts.
       const coverage = matched.length / Math.min(affinities.length, 3);
       breakdown.categoryScore = Math.min(coverage * 30, 30);
     } else {
       breakdown.categoryScore = influencerCats.length > 0 ? 5 : 0;
     }
 
-    // Reason: show the ACTUAL matched categories of the influencer, not the brand's affinity list
     if (matched.length > 0) {
       breakdown.reasons.push(
         `Content matches ${brand.industry ?? 'your industry'} (${matched.slice(0, 3).join(', ')})`,
