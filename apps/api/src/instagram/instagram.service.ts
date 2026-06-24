@@ -47,17 +47,33 @@ export class InstagramService {
     }
 
     // Меняем code на short-lived access token
-    const tokenRes = await axios.post(
-      'https://graph.instagram.com/oauth/access_token', // <- новый endpoint
-      new URLSearchParams({
-        client_id: this.appId,
-        client_secret: this.appSecret,
-        grant_type: 'authorization_code',
-        redirect_uri: this.redirectUri,
-        code,
-      }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
-    );
+    let tokenRes;
+    try {
+      this.logger.log(
+        `Sending to Instagram: appId=${this.appId}, redirectUri=${this.redirectUri}, codeStart=${code?.substring(0, 15)}`,
+      );
+      tokenRes = await axios.post(
+        'https://api.instagram.com/oauth/access_token',
+        new URLSearchParams({
+          client_id: this.appId,
+          client_secret: this.appSecret,
+          grant_type: 'authorization_code',
+          redirect_uri: this.redirectUri,
+          code,
+        }),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+      );
+    } catch (e: any) {
+      const errData = e?.response?.data;
+      const errMsg =
+        typeof errData === 'object' ? JSON.stringify(errData) : String(errData);
+      this.logger.error(`Instagram 400 detail: ${errMsg}`);
+      this.logger.error(`Instagram error message: ${e?.message}`);
+      this.logger.error(
+        `Instagram response text: ${JSON.stringify(e?.response?.data)}`,
+      );
+      throw new Error(errMsg || e?.message || 'Token exchange failed');
+    }
     const { access_token: shortToken, user_id: igUserId } = tokenRes.data;
 
     // Меняем short-lived на long-lived token (60 дней)
