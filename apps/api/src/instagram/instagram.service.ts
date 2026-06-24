@@ -28,13 +28,12 @@ export class InstagramService {
     const params = new URLSearchParams({
       client_id: this.appId,
       redirect_uri: this.redirectUri,
-      scope: 'instagram_basic,instagram_content_publish',
+      scope: 'instagram_business_basic,instagram_business_content_publish',
       response_type: 'code',
       state,
     });
-    return `https://api.instagram.com/oauth/authorize?${params.toString()}`;
+    return `https://www.instagram.com/oauth/authorize?${params.toString()}`;
   }
-
   async handleCallback(code: string, state: string): Promise<void> {
     if (!code) throw new BadRequestException('No code from Instagram');
 
@@ -49,7 +48,7 @@ export class InstagramService {
 
     // Меняем code на short-lived access token
     const tokenRes = await axios.post(
-      'https://api.instagram.com/oauth/access_token',
+      'https://graph.instagram.com/oauth/access_token', // <- новый endpoint
       new URLSearchParams({
         client_id: this.appId,
         client_secret: this.appSecret,
