@@ -77,6 +77,7 @@ export interface InfluencerProfile {
   instagramFollowers: number;
   instagramER: number;
   instagramAvgReach: number;
+  instagramLastSyncAt?: string | null;
   tiktokHandle?: string;
   tiktokFollowers: number;
   tiktokAvgViews: number;
