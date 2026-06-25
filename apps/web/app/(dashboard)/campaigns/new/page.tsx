@@ -48,7 +48,11 @@ export default function NewCampaignPage() {
   const { data: session } = useSession();
   const token = (session?.user as any)?.accessToken as string;
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<Form>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<
+    z.input<typeof schema>,    // тип для полей формы (string)
+    any,
+    z.output<typeof schema>   // тип после transform (number)
+  >({
     resolver: zodResolver(schema),
     defaultValues: { goal: 'REACH', format: 'REEL', isPublic: false },
   });
