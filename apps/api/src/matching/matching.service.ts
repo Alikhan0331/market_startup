@@ -153,8 +153,15 @@ export class MatchingService {
     }
 
     // ── 3. Quality score (0–25) ───────────────────────────────────────────────
+    // If AI score absent, derive from best available ER (Instagram preferred, YouTube fallback)
+    const igER = Number(influencer.instagramER ?? 0);
+    const ytER = Number(influencer.youtubeER ?? 0);
+    const platformER = (igER > 0 && ytER > 0) ? igER * 0.6 + ytER * 0.4
+                     : igER > 0 ? igER : ytER;
+    const erScore =
+      platformER >= 6 ? 9 : platformER >= 4 ? 7.5 : platformER >= 2 ? 6 : platformER >= 1 ? 4.5 : 0;
     const qualityScore =
-      influencer.overallScore != null ? Number(influencer.overallScore) : 0;
+      influencer.overallScore != null ? Number(influencer.overallScore) : erScore;
     breakdown.engagementScore = (qualityScore / 10) * 25;
     if (qualityScore >= 7) {
       breakdown.reasons.push(`High quality score (${qualityScore.toFixed(1)}/10)`);

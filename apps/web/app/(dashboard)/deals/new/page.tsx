@@ -18,6 +18,7 @@ import { Label } from '../../../../components/ui/label';
 import { cn } from '../../../../lib/utils';
 import { formatPrice } from '../../../../lib/utils/formatters';
 import { Zap } from 'lucide-react';
+import { useState } from 'react';
 
 function PricingZones({ pricing, budgetCents }: { pricing: PricingResult; budgetCents: number }) {
   if (!pricing.hasEnoughData) return null;
@@ -119,6 +120,8 @@ function NewDealPageContent() {
         resolver: zodResolver(schema),
         defaultValues: { format: 'POST', budget: 0 },
     });
+
+    const [agreed, setAgreed] = useState(false);
 
     const format = watch('format');
     const deadline = watch('deadline');
@@ -255,10 +258,31 @@ function NewDealPageContent() {
                     {errors.description && <p className="text-xs text-red-400">{errors.description.message}</p>}
                 </div>
 
+                {/* Electronic agreement */}
+                <div className="rounded-lg border border-zinc-700 bg-zinc-900/60 p-4 space-y-3">
+                    <p className="text-xs font-medium text-zinc-300 uppercase tracking-wider">Electronic Agreement</p>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                        By sending this offer I confirm that the deal details above are accurate and I agree to the{' '}
+                        <a href="/how-it-works" target="_blank" className="text-[#4F6EF7] underline underline-offset-2">platform terms</a>.
+                        This constitutes a simple electronic agreement under the deal terms stated above.
+                    </p>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={agreed}
+                            onChange={(e) => setAgreed(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 rounded border-zinc-600 accent-[#4F6EF7]"
+                        />
+                        <span className="text-sm text-zinc-300">
+                            I agree to the terms and confirm the accuracy of this offer
+                        </span>
+                    </label>
+                </div>
+
                 <Button
                     type="submit"
-                    className="w-full bg-[#4F6EF7] hover:bg-[#3D5CE5] text-white"
-                    disabled={mutation.isPending}
+                    className="w-full bg-[#4F6EF7] hover:bg-[#3D5CE5] text-white disabled:opacity-40"
+                    disabled={mutation.isPending || !agreed}
                 >
                     {mutation.isPending ? 'Sending offer...' : 'Send offer'}
                 </Button>

@@ -108,6 +108,8 @@ export interface Deal {
   brandRating?: number | null;
   revisionCount?: number | null;
   noResponseWarnedAt?: string | null;
+  brandAgreedAt?: string | null;
+  influencerAgreedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   brand?: BrandProfile;

@@ -89,8 +89,9 @@ export class InstagramService {
     );
     const longToken: string = longRes.data.access_token;
 
-    // Получаем данные профиля
+    // Получаем данные профиля и считаем ER параллельно
     const profileData = await this.fetchProfileData(longToken, igUserId);
+    const er = await this.calculateER(longToken, igUserId, profileData.followers_count ?? 0);
 
     // Сохраняем в БД
     await this.influencerRepo.update(
@@ -98,6 +99,7 @@ export class InstagramService {
       {
         instagramHandle: profileData.username,
         instagramFollowers: profileData.followers_count ?? 0,
+        instagramER: er,
         instagramAccessToken: longToken,
         instagramUserId: String(igUserId),
         instagramLastSyncAt: new Date(),
@@ -106,7 +108,11 @@ export class InstagramService {
   }
 
   async getInstagramData(userId: string) {
-    const profile = await this.influencerRepo.findOne({ where: { userId } });
+    const profile = await this.influencerRepo
+      .createQueryBuilder('ip')
+      .addSelect('ip.instagramAccessToken')
+      .where('ip.userId = :userId', { userId })
+      .getOne();
     if (!profile?.instagramAccessToken) return { connected: false };
 
     try {
@@ -132,5 +138,37 @@ export class InstagramService {
       },
     });
     return res.data;
+  }
+
+  private async calculateER(
+    accessToken: string,
+    igUserId: string | number,
+    followersCount: number,
+  ): Promise<number> {
+    if (followersCount === 0) return 0;
+    try {
+      const mediaRes = await axios.get(
+        `https://graph.instagram.com/${igUserId}/media`,
+        {
+          params: {
+            fields: 'like_count,comments_count',
+            limit: 12,
+            access_token: accessToken,
+          },
+        },
+      );
+      const posts: Array<{ like_count?: number; comments_count?: number }> =
+        mediaRes.data?.data ?? [];
+      if (posts.length === 0) return 0;
+      const totalEngagements = posts.reduce(
+        (sum, p) => sum + (p.like_count ?? 0) + (p.comments_count ?? 0),
+        0,
+      );
+      const avgEngagements = totalEngagements / posts.length;
+      return Number(((avgEngagements / followersCount) * 100).toFixed(2));
+    } catch (e: any) {
+      this.logger.warn(`ER calculation failed: ${e?.message}`);
+      return 0;
+    }
   }
 }

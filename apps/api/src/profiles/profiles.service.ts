@@ -147,6 +147,7 @@ export class ProfilesService {
   async updateYoutubeStats(
       influencerId: string,
       stats: {
+        youtubeHandle?: string;
         youtubeChannelId: string;
         youtubeSubscribers: number;
         youtubeAvgViews: number;

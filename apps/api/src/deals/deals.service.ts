@@ -46,6 +46,7 @@ export class DealsService {
       description: dto.description,
       deadline: dto.deadline,
       status: DealStatus.PENDING,
+      brandAgreedAt: new Date(),
     });
     return this.dealsRepo.save(deal);
   }
@@ -78,9 +79,13 @@ export class DealsService {
       deal.budget = deal.counterBudget;
     }
     deal.status = DealStatus.ACCEPTED;
+    if (user.role === UserRole.INFLUENCER) {
+      deal.influencerAgreedAt = new Date();
+    } else {
+      deal.brandAgreedAt = new Date();
+    }
     const saved = await this.dealsRepo.save(deal);
 
-    // Suggest busy status to the influencer after accepting a deal
     if (user.role === UserRole.INFLUENCER) {
       this.profilesService.suggestBusyStatus(deal.influencerId).catch(() => {});
     }
