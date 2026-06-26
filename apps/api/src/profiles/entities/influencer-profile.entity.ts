@@ -101,6 +101,18 @@ export class InfluencerProfile {
   @Column({ default: 0 })
   tiktokAvgViews: number;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
+  tiktokER: number;
+
+  @Column({ nullable: true, select: false })
+  tiktokAccessToken: string;
+
+  @Column({ nullable: true })
+  tiktokUserId: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  tiktokLastSyncAt: Date;
+
   // YouTube
   @Column({ nullable: true })
   youtubeHandle: string;

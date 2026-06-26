@@ -15,6 +15,7 @@ import { PricingModule } from './pricing/pricing.module';
 import { InstagramModule } from './instagram/instagram.module';
 import { PartnershipModule } from './partnership/partnership.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { TiktokModule } from './tiktok/tiktok.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -40,6 +41,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     SearchModule,
     DealsModule,
     YoutubeModule,
+    TiktokModule,
     ScoringModule,
     MatchingModule,
     InstagramModule,
