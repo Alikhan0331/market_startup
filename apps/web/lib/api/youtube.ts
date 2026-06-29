@@ -25,6 +25,7 @@ export const youtubeApi = {
 
   saveToProfile: (data: YoutubeChannelResult, token: string) =>
     apiClient.patch<InfluencerProfile>('/influencers/me/youtube', {
+      youtubeHandle: data.handle,
       youtubeChannelId: data.channelId,
       youtubeSubscribers: data.subscribers,
       youtubeAvgViews: data.avgViews,

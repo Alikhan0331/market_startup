@@ -48,6 +48,14 @@ function getPerformanceMultiplier(reliabilityScore: number | null): number {
   return 0.85;
 }
 
+// Combined ER: if both platforms available — weighted avg (Instagram 60%, YouTube 40%)
+function bestER(profile: InfluencerProfile): number {
+  const igER = Number(profile.instagramER ?? 0);
+  const ytER = Number(profile.youtubeER ?? 0);
+  if (igER > 0 && ytER > 0) return igER * 0.6 + ytER * 0.4;
+  return igER > 0 ? igER : ytER;
+}
+
 // Simplified base price for market comparison — no DB calls needed
 function simpleBasePrice(profile: InfluencerProfile): number {
   const topFollowers = Math.max(
@@ -56,8 +64,8 @@ function simpleBasePrice(profile: InfluencerProfile): number {
     profile.youtubeSubscribers ?? 0,
   );
   if (topFollowers === 0) return 0;
-  const igER = Number(profile.instagramER ?? 0);
-  const erFactor = igER > 0 ? Math.min(igER / 0.03, 3) : 1.0;
+  const er = bestER(profile);
+  const erFactor = er > 0 ? Math.min(er / 0.03, 3) : 1.0;
   const nicheCoef = getNicheCoefficient((profile.categories ?? []).filter(Boolean));
   return (topFollowers / 1000) * PRICE_PER_1K_FOLLOWERS * erFactor * nicheCoef;
 }
@@ -96,9 +104,9 @@ export class PricingService {
     // Base: $10 per 1000 followers
     const baseUsd = (topFollowers / 1000) * PRICE_PER_1K_FOLLOWERS;
 
-    // ER factor — normalized to platform average (3%), capped at 3x
-    const igER = Number(profile.instagramER ?? 0);
-    const erFactor = igER > 0 ? Math.min(igER / 0.03, 3) : 1.0;
+    // ER factor — best available across platforms, normalized to ~3% average, capped at 3x
+    const er = bestER(profile);
+    const erFactor = er > 0 ? Math.min(er / 0.03, 3) : 1.0;
 
     // Niche coefficient
     const nicheCoef = getNicheCoefficient(profile.categories ?? []);
@@ -151,6 +159,9 @@ export class PricingService {
 
     const categories = (profile.categories ?? []).filter(Boolean);
     const igER = Number(profile.instagramER ?? 0);
+    const ytER = Number(profile.youtubeER ?? 0);
+    const er = igER > 0 ? igER : ytER;
+    const erSource = igER > 0 ? 'Instagram' : ytER > 0 ? 'YouTube' : null;
     const nicheCoef = getNicheCoefficient(categories);
     const reliability = profile.reliabilityScore !== null ? Number(profile.reliabilityScore) : null;
 
@@ -186,8 +197,8 @@ export class PricingService {
     // ── Boosters ─────────────────────────────────────────────────────────────
     const boosters: string[] = [];
 
-    if (igER >= 5) boosters.push(`Excellent engagement rate (${igER.toFixed(1)}%)`);
-    else if (igER >= 3) boosters.push(`Good engagement rate (${igER.toFixed(1)}%)`);
+    if (er >= 5) boosters.push(`Excellent engagement rate (${er.toFixed(1)}%${erSource ? ` · ${erSource}` : ''})`);
+    else if (er >= 3) boosters.push(`Good engagement rate (${er.toFixed(1)}%${erSource ? ` · ${erSource}` : ''})`);
 
     if (nicheCoef >= 1.3) {
       const topNiche = categories.find((c) => (NICHE_COEFFICIENTS[c.toLowerCase()] ?? 0) >= 1.3);
@@ -206,8 +217,8 @@ export class PricingService {
     // ── Dampers ──────────────────────────────────────────────────────────────
     const dampers: string[] = [];
 
-    if (igER > 0 && igER < 1.5) dampers.push(`Low engagement rate (${igER.toFixed(1)}%)`);
-    else if (igER === 0) dampers.push('No engagement rate data');
+    if (er > 0 && er < 1.5) dampers.push(`Low engagement rate (${er.toFixed(1)}%${erSource ? ` · ${erSource}` : ''})`);
+    else if (er === 0) dampers.push('No engagement rate data — connect Instagram or add YouTube stats');
 
     if (nicheCoef <= 0.9) dampers.push('Lower-demand niche');
 
@@ -234,8 +245,10 @@ export class PricingService {
       tip = 'Improving your reliability score will increase your High price tier';
     else if (profile.verificationStatus !== 'VERIFIED')
       tip = 'Get verified to unlock an additional pricing boost';
-    else if (igER < 1.5 && igER > 0)
-      tip = 'Higher engagement rate on Instagram significantly increases your recommended price';
+    else if (er < 1.5 && er > 0)
+      tip = 'Higher engagement rate significantly increases your recommended price';
+    else if (er === 0)
+      tip = 'Connect Instagram or add YouTube stats to unlock engagement-based pricing boost';
 
     return { position, marketDiffPct, boosters, dampers, tip };
   }

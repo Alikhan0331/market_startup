@@ -82,6 +82,13 @@ export class Deal {
   @Column({ type: 'timestamp', nullable: true })
   noResponseWarnedAt: Date;
 
+  // Electronic agreement timestamps (simple e-signature MVP)
+  @Column({ type: 'timestamp', nullable: true })
+  brandAgreedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  influencerAgreedAt: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

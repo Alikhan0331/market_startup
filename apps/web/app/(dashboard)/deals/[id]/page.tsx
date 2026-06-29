@@ -26,6 +26,7 @@ export default function DealDetailPage() {
   const [disputingEventId, setDisputingEventId] = useState<string | null>(null);
   const [brandRating, setBrandRating] = useState<number | null>(null);
   const [revisionCount, setRevisionCount] = useState('');
+  const [agreedToAccept, setAgreedToAccept] = useState(false);
 
   const { data: deal, isLoading } = useQuery({
     queryKey: ['deal', id],
@@ -167,13 +168,36 @@ export default function DealDetailPage() {
         </div>
       )}
 
+      {canAcceptReject && role === 'INFLUENCER' && (
+        <div className="rounded-lg border border-zinc-700 bg-zinc-900/60 p-4 space-y-3">
+          <p className="text-xs font-medium text-zinc-300 uppercase tracking-wider">Electronic Agreement</p>
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            By accepting this offer I commit to delivering the content described above by{' '}
+            <span className="text-zinc-200 font-medium">{formatDate(deal.deadline)}</span> for{' '}
+            <span className="text-zinc-200 font-medium">{formatPrice(deal.counterBudget ?? deal.budget)}</span>.
+            This constitutes a simple electronic agreement between me and the brand.
+          </p>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreedToAccept}
+              onChange={(e) => setAgreedToAccept(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-zinc-600 accent-[#4F6EF7]"
+            />
+            <span className="text-sm text-zinc-300">
+              I agree to the terms and commit to fulfilling this deal
+            </span>
+          </label>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {canAcceptReject && (
           <>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-500 text-white"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40"
               size="sm"
-              disabled={accept.isPending}
+              disabled={accept.isPending || (role === 'INFLUENCER' && !agreedToAccept)}
               onClick={() => accept.mutate()}
             >
               Accept
@@ -303,6 +327,39 @@ export default function DealDetailPage() {
           >
             Send counter
           </Button>
+        </div>
+      )}
+
+      {(deal.brandAgreedAt || deal.influencerAgreedAt) && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-3">
+          <p className="text-xs text-zinc-500 uppercase tracking-wider">Electronic Agreement Record</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-zinc-400">Brand</span>
+              {deal.brandAgreedAt ? (
+                <span className="text-xs text-emerald-400">
+                  ✓ Agreed · {new Date(deal.brandAgreedAt).toLocaleString()}
+                </span>
+              ) : (
+                <span className="text-xs text-zinc-600">Pending</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-zinc-400">Influencer</span>
+              {deal.influencerAgreedAt ? (
+                <span className="text-xs text-emerald-400">
+                  ✓ Agreed · {new Date(deal.influencerAgreedAt).toLocaleString()}
+                </span>
+              ) : (
+                <span className="text-xs text-zinc-600">Pending</span>
+              )}
+            </div>
+          </div>
+          {deal.brandAgreedAt && deal.influencerAgreedAt && (
+            <p className="text-xs text-zinc-500 border-t border-zinc-800 pt-2">
+              Both parties electronically agreed to the deal terms. Deal ID: {deal.id}
+            </p>
+          )}
         </div>
       )}
 

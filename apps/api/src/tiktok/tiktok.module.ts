@@ -2,11 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { YoutubeController } from './youtube.controller';
-import { YoutubeService } from './youtube.service';
-import { YoutubeApiService } from './youtube-api.service';
-import { YoutubeCacheService } from './youtube-cache.service';
-import { YoutubeOAuthService } from './youtube-oauth.service';
+import { TiktokController } from './tiktok.controller';
+import { TiktokService } from './tiktok.service';
 import { InfluencerProfile } from '../profiles/entities/influencer-profile.entity';
 
 @Module({
@@ -20,8 +17,8 @@ import { InfluencerProfile } from '../profiles/entities/influencer-profile.entit
       inject: [ConfigService],
     }),
   ],
-  controllers: [YoutubeController],
-  providers: [YoutubeService, YoutubeApiService, YoutubeCacheService, YoutubeOAuthService],
-  exports: [YoutubeService],
+  controllers: [TiktokController],
+  providers: [TiktokService],
+  exports: [TiktokService],
 })
-export class YoutubeModule {}
+export class TiktokModule {}
